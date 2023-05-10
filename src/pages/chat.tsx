@@ -43,7 +43,7 @@ export default function Chat() {
 		<>
 			<div className="flex md:flex-row flex-col gap-5 h-screen pb-[80px]">
 				<div
-					className="flex flex-col md:w-3/12 h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
+					className="flex flex-col md:w-3/12 md:h-screen h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
 					<div className="w-full">
 						<button className="btn btn-outline w-full">Create Channel</button>
 					</div>
