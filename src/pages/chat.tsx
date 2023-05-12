@@ -21,7 +21,7 @@ const friends = [
 	{
 		name: "Fatih KARATAY",
 		avatar: 'https://source.unsplash.com/random',
-	}
+	},
 ];
 
 const channels = [
@@ -45,7 +45,9 @@ export default function Chat() {
 				<div
 					className="flex flex-col md:w-3/12 md:h-screen h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
 					<div className="w-full">
-						<button className="btn btn-outline w-full">Create Channel</button>
+						<label htmlFor="openCreateChannel" className="btn btn-outline w-full">
+							Create Channel
+						</label>
 					</div>
 					<div className="tabs tabs-boxed mt-3">
 						<a className={activeTab === 'friends' ? "tab tab-active" : "tab"}
@@ -97,7 +99,9 @@ export default function Chat() {
 											</label>
 											<ul tabIndex={0}
 												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-												<li><a>Setting</a></li>
+												<li>
+													<label htmlFor="openModal">Setting</label>
+												</li>
 											</ul>
 										</div>
 									</div>
@@ -143,6 +147,86 @@ export default function Chat() {
 					<div className="card-footer">
 						<div className="form-control">
 							<input type="text" placeholder="Type here" className="mt-10 input w-full input-primary"/>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<input type="checkbox" id="openModal" className="modal-toggle"/>
+			<div className="modal">
+				<div className="modal-box w-11/12 max-w-5xl">
+					<label htmlFor="openModal" className="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+					<h3 className="font-bold text-lg">Channel Setting</h3>
+					<div className="divider"></div>
+					<div className="w-9/12 mx-auto">
+						<div className="form-control">
+							<label className="label">Channel Category</label>
+							<div className="input-group w-full">
+								<select className="select select-bordered w-full">
+									<option>Public</option>
+									<option>Protected</option>
+									<option>Private</option>
+								</select>
+								<button className="btn">Submit</button>
+							</div>
+						</div>
+						<div className="divider"></div>
+						<div className="w-full">
+							<label htmlFor="channelName" className="label">Channel Members</label>
+							{friends.map((friend, index) => (
+								<li key={index} className="w-full h-auto cursor-pointer">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-x-3">
+											<div className="avatar online">
+												<div className="w-12 rounded-full">
+													<img src="https://source.unsplash.com/random"/>
+												</div>
+											</div>
+											<div>
+											<span>
+												{friend.name}
+											</span>
+											</div>
+										</div>
+										<div className="dropdown dropdown-end">
+											<label tabIndex={0} className="btn">
+												<AdjustmentsHorizontalIcon className="w-4"/>
+											</label>
+											<ul tabIndex={0}
+												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+												<li><a>Assign Admin</a></li>
+												<li><a>Banned</a></li>
+											</ul>
+										</div>
+									</div>
+								</li>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<input type="checkbox" id="openCreateChannel" className="modal-toggle"/>
+			<div className="modal">
+				<div className="modal-box relative">
+					<label htmlFor="openCreateChannel"
+						   className="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+					<h3 className="text-lg font-bold">
+						Create Channel
+					</h3>
+					<div className="py-4">
+						<div className="form-control">
+							<label className="label">
+								Channel Name
+							</label>
+							<label className="input-group input-group-vertical">
+								<input type="text" className="input input-bordered"/>
+							</label>
+						</div>
+						<div className="mt-5">
+							<button className="btn btn-primary">
+								Create Channel
+							</button>
 						</div>
 					</div>
 				</div>
