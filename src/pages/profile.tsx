@@ -1,18 +1,36 @@
 import Layout from "@/layouts";
+import {useEffect, useState} from "react";
+import axios from "@/lib/axios";
+import {object} from "prop-types";
 
 Profile.getLayout = (page: any) => <Layout>{page}</Layout>
+
+interface Profile {
+	full_name: string,
+	email: string,
+	avatar: string,
+}
+
 export default function Profile() {
+
+	const [profile, setProfile] = useState<Profile>({avatar: "", email: "", full_name: ""});
+
+	useEffect(() => {
+		axios.get('/auth/my-account').then((res) => {
+			setProfile(res.data);
+		}).catch((err) => console.log(err));
+	});
 	return (
 		<>
 			<div>
 				<div className="flex gap-10 p-10">
 					<div className="avatar online">
 						<div className="w-24 rounded-full">
-							<img src="https://source.unsplash.com/random"/>
+							<img src={profile.avatar}/>
 						</div>
 					</div>
 					<div className="flex-1">
-						<h1 className="text-4xl font-bold">John Doe</h1>
+						<h1 className="text-4xl font-bold">{profile.full_name}</h1>
 						<p className="text-gray-500">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
 							euismod
 						</p>

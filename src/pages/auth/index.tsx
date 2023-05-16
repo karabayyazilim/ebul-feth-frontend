@@ -9,7 +9,7 @@ export default function Login() {
 				<div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
 					<div className="card-body">
 						<div className="form-control">
-							<button className="btn btn-primary">Intra with login</button>
+							<a href={process.env.NEXT_PUBLIC_INTRA_API_URL} className="btn btn-primary">Intra with login</a>
 						</div>
 					</div>
 				</div>

@@ -1,6 +1,23 @@
 import Link from "next/link";
+import {useEffect, useState} from "react";
+import axios from "@/lib/axios";
+
+interface Profile {
+	full_name: string,
+	email: string,
+	avatar: string,
+}
+
 
 export default function Header() {
+	const [profile, setProfile] = useState<Profile>();
+
+	useEffect(() => {
+		axios.get('/auth/my-account').then((res) => {
+			setProfile(res.data);
+		}).catch((err) => console.log(err));
+	});
+
 	return (
 		<>
 			<div className="navbar bg-base-100">
@@ -22,7 +39,7 @@ export default function Header() {
 					<div className="dropdown dropdown-end">
 						<label tabIndex={0} className="btn btn-ghost btn-circle avatar">
 							<div className="w-10 rounded-full">
-								<img src="https://source.unsplash.com/random"/>
+								<img src={profile?.avatar}/>
 							</div>
 						</label>
 						<ul tabIndex={0}
