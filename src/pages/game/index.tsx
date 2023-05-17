@@ -10,6 +10,7 @@ interface Player {
     position: Vector2d;
     playerWidth: number;
     playerHeight: number;
+    playerTargetY: number;
     playerSpeed: number;
     playerColor: string;
     playerScore: number;
@@ -21,7 +22,7 @@ interface Ball {
     ballSpeed: Vector2d;
 }
 
-const PLAYER_SPEED = 50;
+const PLAYER_MOVE_SPEED = 1;
 const PLAYER_WIDTH_SCALE = 0.01;
 const PLAYER_HEIGTH_SCALE = 0.25;
 const PLAYER_MARGINX = 10;
@@ -37,12 +38,16 @@ export default function Game()
 
     const [score1, setScore1] = useState(0);
     const [score2, setScore2] = useState(0);
+    const [timeInfo, setTimeInfo] = useState("");
+
 
     let canvas : any;
     let ctx : any;
     let ball : Ball;
     let players: Player[];
     let ballRadius: number;
+    let timer : any;
+    let gameTime : number = Date.now() / 1000;
 
     useEffect(() => {
         canvas = canvasRef.current;
@@ -71,8 +76,8 @@ export default function Game()
                     Y: canvas.height / 2,
                 },
                 ballSpeed: {
-                    X: canvas.width * 0.0050,
-                    Y: canvas.height * 0.0050,
+                    X: canvas.width * 0.0020,
+                    Y: canvas.height * 0.0020,
                 },
                 ballRadius: canvas.width * 0.01,
             }
@@ -85,7 +90,8 @@ export default function Game()
                         X: PLAYER_MARGINX,
                         Y: PLAYER_MARGINY,
                     },
-                    playerSpeed: PLAYER_SPEED,
+                    playerTargetY: PLAYER_MARGINY,
+                    playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
                     playerColor: '#00CED1',
                     playerScore: 0,
                 },
@@ -96,16 +102,29 @@ export default function Game()
                         X: canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX,
                         Y: PLAYER_MARGINY,
                     },
-                    playerSpeed: PLAYER_SPEED,
+                    playerTargetY: PLAYER_MARGINY,
+                    playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
                     playerColor: '#00CED1',
                     playerScore: 0,
                 },
             ];
             ballRadius = ball.ballRadius / 2;
             window.addEventListener('keydown', onKeyDown);
+            window.addEventListener("keyup", onKeyUp);
             window.addEventListener("resize", onResize);
+            timer = setInterval(gameLoop, 5);
+            setInterval(() => {
+                const time = Date.now() / 1000;
+                const min = Math.floor((time - gameTime) / 60);
+                const sec = Math.floor(time - (gameTime + (min * 60)));
+                setTimeInfo(min.toString().padStart(2,'0') + ":" + sec.toString().padStart(2,'0'));
+
+            },1000);
             isGameInit = true;
             gameLoop();
+        }
+        return () => {
+            //clearInterval(timer);
         }
 
     })
@@ -134,15 +153,31 @@ export default function Game()
 
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.keyCode === 83) {
-            movePlayer(1, players[0]);
+            players[0].playerSpeed += 0.5;
+            players[0].playerTargetY += players[0].position.Y + players[0].playerSpeed;
         } else if (e.keyCode === 87) {
-            movePlayer(0, players[0]);
+            players[0].playerSpeed += 0.5;
+            players[0].playerTargetY -= players[0].position.Y + players[0].playerSpeed;
         } else if (e.keyCode === 40) {
-            movePlayer(1, players[1]);
+            players[1].playerSpeed += 0.5;
+            players[1].playerTargetY += players[1].position.Y + players[1].playerSpeed;
         } else if (e.keyCode === 38) {
-            movePlayer(0, players[1]);
+            players[1].playerSpeed += 0.5;
+            players[1].playerTargetY -= players[1].position.Y + players[1].playerSpeed;
         }
     };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+        if(e.keyCode == 83 || e.keyCode == 87) {
+            players[0].playerSpeed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
+            players[0].playerTargetY = players[0].position.Y;
+        }
+        else if(e.keyCode == 40 || e.keyCode == 38) {
+            players[1].playerSpeed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
+            players[1].playerTargetY = players[1].position.Y;
+        }
+
+    }
 
     const onBallCollide = (target : any) => {
         if(target.targetName == "wall")
@@ -157,19 +192,28 @@ export default function Game()
         drawBall();
         moveBall();
 
-        for (let i = 0; i < 2; i++)
+        for (let i = 0; i < 2; i++) {
+            movePlayer(players[i]);
             drawPlayer(players[i]);
+        }
 
-        window.requestAnimationFrame(gameLoop);
+        //window.requestAnimationFrame(gameLoop);
     };
 
-    const movePlayer = (direction: number, player: Player) => {
-        if (direction === 1) {
-            if (player.position.Y + player.playerHeight < canvas.height)
-                player.position.Y += PLAYER_SPEED;
-        } else {
-            if (player.position.Y > 0)
-                player.position.Y -= PLAYER_SPEED;
+    const movePlayer = (player : Player) => {
+        const speed = player.playerSpeed;
+        if(player.position.Y < player.playerTargetY) {
+            if(player.position.Y + player.playerHeight + speed < canvas.height - PLAYER_MARGINY)
+                player.position.Y += speed;
+            else if(player.position.Y + player.playerHeight < canvas.height - PLAYER_MARGINY)
+                player.position.Y += 1;
+        }
+        else if(player.position.Y > player.playerTargetY) {
+            console.log("2");
+            if(player.position.Y - speed > PLAYER_MARGINY)
+                player.position.Y -= speed;
+            else if(player.position.Y > PLAYER_MARGINY)
+                player.position.Y -= 1;
         }
     };
 
@@ -236,7 +280,9 @@ export default function Game()
                     </div>
                 </div>
                 <div className={styles.timer}>
-                    asdad
+                    {
+                        timeInfo
+                    }
                 </div>
                 <div className={styles.playerScore}>
                     <div className={styles.playerInfo}>
