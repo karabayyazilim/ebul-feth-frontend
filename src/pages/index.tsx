@@ -12,7 +12,7 @@ export default function Home() {
 		axios.get('/auth/my-account').then((res) => {
 			console.log(res.data);
 		});
-	});
+	}, []);
 
 	return (
 		<div className="flex gap-3 md:flex-wrap lg:flex-nowrap">

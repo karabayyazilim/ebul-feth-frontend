@@ -19,7 +19,7 @@ export default function Profile() {
 		axios.get('/auth/my-account').then((res) => {
 			setProfile(res.data);
 		}).catch((err) => console.log(err));
-	});
+	}, []);
 	return (
 		<>
 			<div>

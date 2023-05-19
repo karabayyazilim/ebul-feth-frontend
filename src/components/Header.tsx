@@ -16,7 +16,7 @@ export default function Header() {
 		axios.get('/auth/my-account').then((res) => {
 			setProfile(res.data);
 		}).catch((err) => console.log(err));
-	});
+	},[]);
 
 	return (
 		<>

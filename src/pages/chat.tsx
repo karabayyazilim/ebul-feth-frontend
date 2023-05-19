@@ -1,7 +1,9 @@
 import Layout from "@/layouts";
-import {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {AdjustmentsHorizontalIcon} from "@heroicons/react/20/solid";
-
+import {io} from "socket.io-client";
+import axios from "@/lib/axios";
+import {Profiler} from "inspector";
 
 Chat.getLayout = (page: any) => <Layout>{page}</Layout>
 
@@ -35,9 +37,54 @@ const channels = [
 	}
 ];
 
+interface IMessage {
+	avatar: string;
+	name: string;
+	message: string;
+	recieverId: number;
+}
+
 export default function Chat() {
 
 	const [activeTab, setActiveTab] = useState('friends');
+	const [directMessages, setDirectMessages] = useState<IMessage[]>([]);
+	const [profile, setProfile] = useState<any>({});
+
+	const socket: any = io('localhost:9000/chat');
+
+	const enterKeyPress = (e: any) => {
+		if (e.key === 'Enter') {
+			const message: IMessage = {
+				avatar: profile?.avatar,
+				name: profile?.full_name,
+				message: e.target.value,
+				recieverId: profile?.id == 5 ? 4 : 5,
+			}
+
+			socket.emit('message', message);
+			setDirectMessages((prevMessages) => [...prevMessages, message]);
+			e.target.value = '';
+		}
+	}
+
+	const handleMessages = (message: IMessage) => {
+		console.log(message);
+		setDirectMessages((prevMessages) => [...prevMessages, message]);
+	}
+
+	useEffect(() => {
+		axios.get('/auth/my-account').then((res) => {
+			setProfile(res.data);
+			socket.emit('connect-user', res.data.id);
+		})
+
+		socket.on('message', handleMessages);
+
+		return () => {
+			socket.io.connect();
+		}
+	}, []);
+
 
 	return (
 		<>
@@ -113,40 +160,26 @@ export default function Chat() {
 				<div className="card w-full bg-neutral shadow-xl">
 					<div className="card-body overflow-y-auto max-h-[800px]">
 						<h2 className="card-title">Chat</h2>
-						<div className="chat chat-start">
-							<div className="chat-image avatar">
-								<div className="w-10 rounded-full">
-									<img src="https://source.unsplash.com/random"/>
+
+						{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
+							<div className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"} key={index}>
+								<div className="chat-image avatar">
+									<div className="w-10 rounded-full">
+										<img src={direct.avatar} />
+									</div>
 								</div>
-							</div>
-							<div className="chat-header">
-								Obi-Wan Kenobi
-								<time className="text-xs opacity-50">12:45</time>
-							</div>
-							<div className="chat-bubble">You were the Chosen One!</div>
-							<div className="chat-footer opacity-50">
-								Delivered
-							</div>
-						</div>
-						<div className="chat chat-end">
-							<div className="chat-image avatar">
-								<div className="w-10 rounded-full">
-									<img src="https://source.unsplash.com/random"/>
+								<div className="chat-header">
+									{direct.name}
 								</div>
+								<div className="bg-green-950 chat-bubble">{direct.message}</div>
 							</div>
-							<div className="chat-header">
-								Anakin
-								<time className="text-xs opacity-50">12:46</time>
-							</div>
-							<div className="chat-bubble">I hate you!</div>
-							<div className="chat-footer opacity-50">
-								Seen at 12:46
-							</div>
-						</div>
+						))}
+
 					</div>
 					<div className="card-footer">
 						<div className="form-control">
-							<input type="text" placeholder="Type here" className="mt-10 input w-full input-primary"/>
+							<input type="text" onKeyPress={enterKeyPress} placeholder="Type here"
+								   className="mt-10 input w-full input-primary"/>
 						</div>
 					</div>
 				</div>
