@@ -1,13 +1,12 @@
 import Layout from "@/layouts";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {AdjustmentsHorizontalIcon} from "@heroicons/react/20/solid";
 import {io} from "socket.io-client";
 import axios from "@/lib/axios";
-import {Profiler} from "inspector";
 
 Chat.getLayout = (page: any) => <Layout>{page}</Layout>
 
-const friends = [
+/*const friends = [
 	{
 		name: 'Ali KARABAY',
 		avatar: 'https://source.unsplash.com/random',
@@ -24,7 +23,7 @@ const friends = [
 		name: "Fatih KARATAY",
 		avatar: 'https://source.unsplash.com/random',
 	},
-];
+];*/
 
 const channels = [
 	{
@@ -49,6 +48,10 @@ export default function Chat() {
 	const [activeTab, setActiveTab] = useState('friends');
 	const [directMessages, setDirectMessages] = useState<IMessage[]>([]);
 	const [profile, setProfile] = useState<any>({});
+	const [friends, setFriends] = useState<any[]>([]);
+	const [selectedFriend, setSelectedFriend] = useState<any>({});
+
+	const chatRef = useRef<HTMLDivElement>(null);
 
 	const socket: any = io('localhost:9000/chat');
 
@@ -58,7 +61,7 @@ export default function Chat() {
 				avatar: profile?.avatar,
 				name: profile?.full_name,
 				message: e.target.value,
-				recieverId: profile?.id == 5 ? 4 : 5,
+				recieverId: selectedFriend?.id,
 			}
 
 			socket.emit('message', message);
@@ -68,9 +71,18 @@ export default function Chat() {
 	}
 
 	const handleMessages = (message: IMessage) => {
-		console.log(message);
 		setDirectMessages((prevMessages) => [...prevMessages, message]);
 	}
+
+	const scrollToBottom = () => {
+		if (chatRef.current) {
+			chatRef.current.scrollTop = chatRef.current.scrollHeight;
+		}
+	};
+
+	useEffect(() => {
+		scrollToBottom();
+	}, [directMessages]);
 
 	useEffect(() => {
 		axios.get('/auth/my-account').then((res) => {
@@ -85,12 +97,21 @@ export default function Chat() {
 		}
 	}, []);
 
+	useEffect(() => {
+		axios.get('/friend',).then((res) => {
+			setFriends(res.data);
+			console.log(res.data);
+		}).catch((err) => {
+			console.log(err);
+		});
+	}, []);
+
 
 	return (
 		<>
-			<div className="flex md:flex-row flex-col gap-5 h-screen pb-[80px]">
+			<div className="flex md:flex-row flex-col gap-5 md:h-[calc(100vh-80px)] h-screen">
 				<div
-					className="flex flex-col md:w-3/12 md:h-screen h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
+					className="flex flex-col md:w-3/12 md:h-full h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
 					<div className="w-full">
 						<label htmlFor="openCreateChannel" className="btn btn-outline w-full">
 							Create Channel
@@ -105,7 +126,9 @@ export default function Chat() {
 					<div className="md:w-80 w-full h-screen bg-neutral text-base-content overflow-y-auto">
 						<ul className="flex flex-row p-4 menu rounded-2xl">
 							{activeTab === 'friends' && friends.map((friend, index) => (
-								<li key={index} className="w-full h-auto cursor-pointer">
+								<li key={index}
+									className={selectedFriend.id === friend.friend.id ? 'w-full h-auto cursor-pointer bg-primary text-white' : 'w-full h-auto cursor-pointer'}
+									onClick={() => setSelectedFriend(friend.friend)}>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-x-3">
 											<div className="avatar online">
@@ -115,7 +138,7 @@ export default function Chat() {
 											</div>
 											<div>
 											<span>
-												{friend.name}
+												{friend.friend.full_name}
 											</span>
 											</div>
 										</div>
@@ -157,28 +180,35 @@ export default function Chat() {
 						</ul>
 					</div>
 				</div>
-				<div className="card w-full bg-neutral shadow-xl">
-					<div className="card-body overflow-y-auto max-h-[800px]">
+				<div className="card w-full bg-neutral shadow-xl h-[400px] md:h-full">
+					<div ref={chatRef} className="card-body overflow-y-auto max-h-[800px]">
 						<h2 className="card-title">Chat</h2>
-
-						{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
-							<div className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"} key={index}>
-								<div className="chat-image avatar">
-									<div className="w-10 rounded-full">
-										<img src={direct.avatar} />
+						{Object.keys(selectedFriend).length ? (
+							<div>
+								{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
+									<div className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}
+										 key={index}>
+										<div className="chat-image avatar">
+											<div className="w-10 rounded-full">
+												<img src={direct.avatar}/>
+											</div>
+										</div>
+										<div className="chat-header">
+											{direct.name}
+										</div>
+										<div className="bg-green-950 chat-bubble">{direct.message}</div>
 									</div>
-								</div>
-								<div className="chat-header">
-									{direct.name}
-								</div>
-								<div className="bg-green-950 chat-bubble">{direct.message}</div>
+								))}
 							</div>
-						))}
-
+						) : (
+							<div className="flex h-full mx-auto items-center text-2xl">
+								Please select a friend.
+							</div>
+						)}
 					</div>
 					<div className="card-footer">
 						<div className="form-control">
-							<input type="text" onKeyPress={enterKeyPress} placeholder="Type here"
+							<input type="text" disabled={Object.keys(selectedFriend).length === 0} onKeyPress={enterKeyPress} placeholder="Type here"
 								   className="mt-10 input w-full input-primary"/>
 						</div>
 					</div>
