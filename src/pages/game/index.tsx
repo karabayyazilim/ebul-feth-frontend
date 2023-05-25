@@ -80,9 +80,9 @@ export default function Game() {
         playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
         position: {
           X: PLAYER_MARGINX,
-          Y: PLAYER_MARGINY,
+          Y: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
         },
-        playerTargetY: PLAYER_MARGINY,
+        playerTargetY: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
         playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
         playerColor: "#00CED1",
         playerScore: 0,
@@ -92,9 +92,9 @@ export default function Game() {
         playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
         position: {
           X: canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX,
-          Y: PLAYER_MARGINY,
+          Y: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
         },
-        playerTargetY: PLAYER_MARGINY,
+        playerTargetY: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
         playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
         playerColor: "#00CED1",
         playerScore: 0,
@@ -227,21 +227,17 @@ export default function Game() {
       ball.position.X += ball.ballSpeed.X;
       ball.position.Y += ball.ballSpeed.Y;
 
-      if (
-        ball.position.Y + ballRadius > canvas.height ||
-        ball.position.Y + ballRadius < 0
-      )
+      const ballX = ball.position.X + (ball.ballSpeed.X > 0 ? ballRadius : -ballRadius);
+      const ballY = ball.position.Y + (ball.ballSpeed.Y > 0 ? ballRadius : - ballRadius);
+
+      if (ballY > canvas.height || ballY < 0)
         onBallCollide({ targetName: "wall", targetEntity: null });
-      else if (
-        ball.position.X > canvas.width ||
-        ball.position.X < canvas.clientLeft
-      ) {
+      else if (ballX > canvas.width || ballX < canvas.clientLeft) {
         let target = ball.position.X + ball.ballRadius > canvas.width ? 0 : 1;
         setScore(target, players[target].playerScore + 1);
         resetBall();
-      } else {
-        const ballX = ball.position.X + ballRadius;
-        const ballY = ball.position.Y + ballRadius;
+      }
+      else {
 
         for (let i = 0; i < 2; i++) {
           if (
