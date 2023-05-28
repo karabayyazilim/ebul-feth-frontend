@@ -102,9 +102,12 @@ export default function Chat() {
 	}, []);
 
 	useEffect(() => {
-		axios.get('/friend',).then((res) => {
+		axios.get('/friend', {
+			params: {
+				status: 'accepted'
+			}
+		}).then((res) => {
 			setFriends(res.data);
-			console.log(res.data);
 		}).catch((err) => {
 			console.log(err);
 		});
@@ -144,7 +147,7 @@ export default function Chat() {
 										<div className="flex items-center gap-x-3">
 											<div className="avatar online">
 												<div className="w-12 rounded-full">
-													<img src="https://source.unsplash.com/random"/>
+													<img src={friend.friend.avatar}/>
 												</div>
 											</div>
 											<div>
@@ -197,8 +200,9 @@ export default function Chat() {
 						{Object.keys(selectedFriend).length ? (
 							<div>
 								{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
-									<div className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}
-										 key={index}>
+									<div
+										className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}
+										key={index}>
 										<div className="chat-image avatar">
 											<div className="w-10 rounded-full">
 												<img src={direct.avatar}/>
@@ -219,16 +223,17 @@ export default function Chat() {
 					</div>
 					<div className="card-footer">
 						<div className="form-control">
-							<input type="text" disabled={Object.keys(selectedFriend).length === 0} onKeyPress={enterKeyPress} placeholder="Type here"
+							<input type="text" disabled={Object.keys(selectedFriend).length === 0}
+								   onKeyPress={enterKeyPress} placeholder="Type here"
 								   className="mt-10 input w-full input-primary"/>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<ChannelSettingModal friends={friends} />
-			<CreateChannelModal />
-			<AddFriendModal />
+			<ChannelSettingModal friends={friends}/>
+			<CreateChannelModal/>
+			<AddFriendModal/>
 		</>
 	);
 }

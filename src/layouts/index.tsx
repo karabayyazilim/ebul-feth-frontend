@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import {useEffect} from "react";
 import {useRouter} from "next/router";
+import {Toaster} from "react-hot-toast";
 
 // @ts-ignore
 export default function Layout({children}) {
@@ -19,6 +20,7 @@ export default function Layout({children}) {
 
 	return (
 		<div className="container mx-auto">
+			<Toaster />
 			<Header/>
 			{children}
 		</div>
