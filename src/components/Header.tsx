@@ -12,6 +12,11 @@ interface Profile {
 export default function Header() {
 	const [profile, setProfile] = useState<Profile>();
 
+	const handleLogout = () => {
+		localStorage.removeItem('token');
+		window.location.href = '/';
+	}
+
 	useEffect(() => {
 		axios.get('/auth/my-account').then((res) => {
 			setProfile(res.data);
@@ -49,7 +54,7 @@ export default function Header() {
 									Profile
 								</Link>
 							</li>
-							<li><a>Logout</a></li>
+							<li><a onClick={handleLogout}>Logout</a></li>
 						</ul>
 					</div>
 				</div>

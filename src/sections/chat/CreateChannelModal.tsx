@@ -1,6 +1,22 @@
-import React from "react";
+import React, {useState} from "react";
+import axios from "@/lib/axios";
+import toast from "react-hot-toast";
 
 export default function CreateChannelModal() {
+
+	const [channelName, setChannelName] = useState('');
+
+	const handleCreateChannel = () => {
+		axios.post('/channel', {
+			name: channelName
+		}).then(() => {
+			toast.success("Channel created!");
+			setChannelName('');
+		}).catch((err) => {
+			toast.error("An error occurred!");
+		});
+	}
+
 	return (
 		<>
 			<input type="checkbox" id="openCreateChannel" className="modal-toggle"/>
@@ -17,11 +33,12 @@ export default function CreateChannelModal() {
 								Channel Name
 							</label>
 							<label className="input-group input-group-vertical">
-								<input type="text" className="input input-bordered w-full"/>
+								<input type="text" className="input input-bordered w-full"
+									   onChange={(e) => setChannelName(e.target.value)}/>
 							</label>
 						</div>
 						<div className="mt-6 flex flex-col">
-							<button className="btn btn-primary">
+							<button className="btn btn-primary" onClick={handleCreateChannel}>
 								Create Channel
 							</button>
 						</div>
