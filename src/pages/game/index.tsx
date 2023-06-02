@@ -30,6 +30,43 @@ const PLAYER_HEIGTH_SCALE = 0.25;
 const PLAYER_MARGINX = 10;
 const PLAYER_MARGINY = 5;
 
+const drawCenterLine = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  context.beginPath();
+  context.moveTo(canvas.width / 2, 0);
+  context.lineTo(canvas.width / 2, canvas.height);
+  context.strokeStyle = "black";
+  context.lineWidth = canvas.width * 0.0025;
+  context.stroke();
+};
+
+
+const drawCenterCircle = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const radius = Math.min(canvas.width, canvas.height) * 0.12;
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+  context.strokeStyle = "green";
+  context.lineWidth = canvas.width * 0.0025;
+  context.stroke();
+};
+
+const drawHorizontalLine = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  context.beginPath();
+  context.moveTo(0, 100);
+  context.lineTo(canvas.width, 100);
+  context.stroke();
+};
+
+const drawHorizontalLine_2 = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  context.beginPath();
+  context.moveTo(0, canvas.height - 100);
+  context.lineTo(canvas.width, canvas.height - 100);
+  context.stroke();
+};
+
+
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -161,12 +198,16 @@ export default function Game() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBall();
       moveBall();
-
+      
       // tuş hesaplamaları her iki playerin de asenkron olarak çalışması için
       // asenkron fonksiyonlara çevirildi
       calculatePlayerA();
       calculatePlayerB();
-
+      
+      drawHorizontalLine(ctx, canvas);
+      drawHorizontalLine_2(ctx, canvas);
+      drawCenterCircle(ctx, canvas);
+      drawCenterLine(ctx, canvas);
       for (let i = 0; i < 2; i++) {
         movePlayer(players[i]);
         drawPlayer(players[i]);
