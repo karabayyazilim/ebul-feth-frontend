@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
+import { Socket } from "socket.io-client";
+import { connectSocket } from "@/api/socket/game";
 
 interface Vector2d {
   X: number;
@@ -24,13 +26,16 @@ interface Ball {
   ballSpeed: Vector2d;
 }
 
-const PLAYER_MOVE_SPEED = 0.5;
+const PLAYER_MOVE_SPEED = 5;
 const PLAYER_WIDTH_SCALE = 0.01;
 const PLAYER_HEIGTH_SCALE = 0.25;
 const PLAYER_MARGINX = 10;
 const PLAYER_MARGINY = 5;
 
-const drawCenterLine = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+const drawCenterLine = (
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement
+) => {
   context.beginPath();
   context.moveTo(canvas.width / 2, 0);
   context.lineTo(canvas.width / 2, canvas.height);
@@ -39,8 +44,10 @@ const drawCenterLine = (context: CanvasRenderingContext2D, canvas: HTMLCanvasEle
   context.stroke();
 };
 
-
-const drawCenterCircle = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+const drawCenterCircle = (
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement
+) => {
   const radius = Math.min(canvas.width, canvas.height) * 0.12;
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
@@ -52,20 +59,25 @@ const drawCenterCircle = (context: CanvasRenderingContext2D, canvas: HTMLCanvasE
   context.stroke();
 };
 
-const drawHorizontalLine = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+const drawHorizontalLine = (
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement
+) => {
   context.beginPath();
   context.moveTo(0, 100);
   context.lineTo(canvas.width, 100);
   context.stroke();
 };
 
-const drawHorizontalLine_2 = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+const drawHorizontalLine_2 = (
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement
+) => {
   context.beginPath();
   context.moveTo(0, canvas.height - 100);
   context.lineTo(canvas.width, canvas.height - 100);
   context.stroke();
 };
-
 
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -91,6 +103,8 @@ export default function Game() {
     ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
+    const socket = connectSocket("http://localhost:9000/game");
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
@@ -105,8 +119,8 @@ export default function Game() {
         Y: canvas.height / 2,
       },
       ballSpeed: {
-        X: canvas.width * 0.001,
-        Y: canvas.height * 0.001,
+        X: canvas.width * 0.008,
+        Y: canvas.height * 0.008,
       },
       ballRadius: canvas.width * 0.01,
     };
@@ -117,9 +131,10 @@ export default function Game() {
         playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
         position: {
           X: PLAYER_MARGINX,
-          Y: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
+          Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         },
-        playerTargetY: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
+        playerTargetY:
+          canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
         playerColor: "#00CED1",
         playerScore: 0,
@@ -129,9 +144,10 @@ export default function Game() {
         playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
         position: {
           X: canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX,
-          Y: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
+          Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         },
-        playerTargetY: (canvas.height / 2) - ((canvas.height * PLAYER_HEIGTH_SCALE) / 2),
+        playerTargetY:
+          canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
         playerColor: "#00CED1",
         playerScore: 0,
@@ -198,12 +214,13 @@ export default function Game() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBall();
       moveBall();
-      
+      // console.log("DRAW");
+
       // tuş hesaplamaları her iki playerin de asenkron olarak çalışması için
       // asenkron fonksiyonlara çevirildi
       calculatePlayerA();
       calculatePlayerB();
-      
+
       drawHorizontalLine(ctx, canvas);
       drawHorizontalLine_2(ctx, canvas);
       drawCenterCircle(ctx, canvas);
@@ -212,8 +229,7 @@ export default function Game() {
         movePlayer(players[i]);
         drawPlayer(players[i]);
       }
-
-      //window.requestAnimationFrame(gameLoop);
+      requestAnimationFrame(gameLoop);
     };
 
     const movePlayer = (player: Player) => {
@@ -260,26 +276,24 @@ export default function Game() {
       ctx.closePath();
     };
 
-    const onBallCollide = (target: any) => {
-      if (target.targetName == "wall") ball.ballSpeed.Y = -ball.ballSpeed.Y;
-    };
-
     const moveBall = () => {
       ball.position.X += ball.ballSpeed.X;
       ball.position.Y += ball.ballSpeed.Y;
 
-      const ballX = ball.position.X + (ball.ballSpeed.X > 0 ? ballRadius : -ballRadius);
-      const ballY = ball.position.Y + (ball.ballSpeed.Y > 0 ? ballRadius : - ballRadius);
+      const ballX =
+        ball.position.X + (ball.ballSpeed.X > 0 ? ballRadius : -ballRadius);
+      const ballY =
+        ball.position.Y + (ball.ballSpeed.Y > 0 ? ballRadius : -ballRadius);
 
-      if (ballY > canvas.height || ballY < 0)
-        onBallCollide({ targetName: "wall", targetEntity: null });
-      else if (ballX > canvas.width || ballX < canvas.clientLeft) {
+      if (ballY > canvas.height || ballY < 0) {
+        ball.ballSpeed.Y = -ball.ballSpeed.Y;
+        console.log(ballX);
+        console.log(ballY);
+      } else if (ballX > canvas.width || ballX < canvas.clientLeft) {
         let target = ball.position.X + ball.ballRadius > canvas.width ? 0 : 1;
         setScore(target, players[target].playerScore + 1);
         resetBall();
-      }
-      else {
-
+      } else {
         for (let i = 0; i < 2; i++) {
           if (
             ballX >= players[i].position.X &&
@@ -287,6 +301,8 @@ export default function Game() {
             ballY >= players[i].position.Y &&
             ballY <= players[i].position.Y + players[i].playerHeight
           ) {
+            console.log(ballX);
+            console.log(ballY);
             ball.ballSpeed.X = -ball.ballSpeed.X;
             ball.ballSpeed.X = Math.min(
               Math.max(ball.ballSpeed.X * 1.1, -12),
@@ -320,7 +336,13 @@ export default function Game() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
-    timer = setInterval(gameLoop, 5);
+    requestAnimationFrame(gameLoop);
+
+    // setInterval(() => {
+    //   socket.emit("movePlayer", players[0]);
+
+    //   socket.send("movePlayer", "deneme");
+    // }, 1000);
 
     setInterval(() => {
       const time = Date.now() / 1000;
@@ -331,8 +353,14 @@ export default function Game() {
       );
     }, 1000);
 
+    socket.on("connect", () => {
+      console.log("connected");
+    });
+
     return () => {
       clearInterval(timer);
+      socket.disconnect();
+      socket.close();
     };
   }, []);
 
