@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import { Socket } from "socket.io-client";
 import { connectSocket } from "@/api/socket/game";
+import Loading from "@/components/loading";
+import { useAuthContext } from "@/auth/AuthContext";
+import DashboardLayout from "@/layouts/DashboardLayout";
+import axios from "@/lib/axios";
 
 interface Vector2d {
   X: number;
@@ -9,45 +13,34 @@ interface Vector2d {
 }
 
 interface Player {
-  position: Vector2d;
   width: number;
+  speed: number;
+  score: number;
+  color: string;
   height: number;
   target: number;
-  speed: number;
-  color: string;
-  score: number;
+  position: Vector2d;
 }
 
 interface Guest {
-  position: Vector2d;
   width: number;
-  height: number;
   color: string;
+  height: number;
+  position: Vector2d;
 }
 
 interface Ball {
-  position: Vector2d;
   radius: number;
   speed: Vector2d;
+  position: Vector2d;
 }
 
-let guestPos: "up" | "down" | number | null = null;
+let startGame: () => void;
 
-const keyPressed: { [x: string]: boolean } = {};
-
-const PLAYER_MOVE_SPEED = 5;
-const PLAYER_WIDTH_SCALE = 0.01;
-const PLAYER_HEIGTH_SCALE = 0.25;
-const PLAYER_MARGINX = 10;
-const PLAYER_MARGINY = 5;
-
-let canvas: HTMLCanvasElement;
-let ctx: CanvasRenderingContext2D;
-let ballRadius: number;
-let timer: any;
-let gameTime: number = Date.now() / 1000;
+Game.getLayout = (page: ReactNode) => <DashboardLayout>{page}</DashboardLayout>;
 
 export default function Game() {
+  const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
 
@@ -55,23 +48,37 @@ export default function Game() {
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
 
-  useEffect(() => {
-    canvas = canvasRef.current as HTMLCanvasElement;
+  const [opponent, setOpponent] = useState<IUser>();
 
+  const [userList, setUserList] = useState<
+    {
+      socketId: string;
+      user: IUser;
+    }[]
+  >();
+
+  useEffect(() => {
+    let canvas = canvasRef.current as HTMLCanvasElement;
     if (!canvas) return;
 
-    ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
-
-    const socket = connectSocket("http://localhost:9000/game");
 
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    const bodyElement = document.querySelector("body");
-    if (bodyElement) {
-      bodyElement.style.height = "100vh";
-    }
+    const socket = connectSocket("http://localhost:9000/game");
+
+    const PLAYER_MARGINY = 5;
+    const PLAYER_MARGINX = 10;
+    const PLAYER_MOVE_SPEED = 5;
+    const PLAYER_WIDTH_SCALE = 0.01;
+    const PLAYER_HEIGTH_SCALE = 0.25;
+    const keyPressed: { [x: string]: boolean } = {};
+
+    let timer: NodeJS.Timer;
+    let gameTime: number = Date.now() / 1000;
+    let guestPos: "up" | "down" | number | null = null;
 
     const ball: Ball = {
       position: {
@@ -109,10 +116,6 @@ export default function Game() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Eğer tuşa basılırsa keyPressed objesine basılan tuş atanacak,
-      // tuştan el kaldırılırsa objeden silinecek. Bu sayede multiple
-      // her 2 player için de tuş kombinasyonları yakalanabilir
-      console.log("pressed");
       if (!keyPressed[e.key]) {
         if (e.key === "w") {
           socket.emit("movePlayer", "up");
@@ -129,7 +132,6 @@ export default function Game() {
         player.target = player.position.Y;
         socket.emit("movePlayer", player.position.Y);
       }
-
       delete keyPressed[e.key];
     };
 
@@ -211,11 +213,6 @@ export default function Game() {
     socket.on("movePlayer", (data: "up" | "down" | number | null) => {
       guestPos = data;
       console.log(data);
-      // Object.assign(guest, data);
-
-      // guest.target = data.target;
-
-      // guest.position.Y = data.position.Y;
     });
 
     const drawBall = () => {
@@ -227,6 +224,7 @@ export default function Game() {
     };
 
     const moveBall = () => {
+      const ballRadius = ball.radius / 2;
       ball.position.X += ball.speed.X;
       ball.position.Y += ball.speed.Y;
 
@@ -276,70 +274,110 @@ export default function Game() {
       else setScore2((score) => score + 1);
     };
 
-    ballRadius = ball.radius / 2;
+    const getUserInterval = setInterval(() => {
+      console.log("request");
+      axios.get("/game").then((resp) => setUserList(resp.data));
+    }, 3000);
+
+    startGame = () => {
+      clearInterval(getUserInterval);
+      requestAnimationFrame(gameLoop);
+
+      timer = setInterval(() => {
+        const time = Date.now() / 1000;
+        const min = Math.floor((time - gameTime) / 60);
+        const sec = Math.floor(time - (gameTime + min * 60));
+        setTimeInfo(
+          min.toString().padStart(2, "0") +
+            ":" +
+            sec.toString().padStart(2, "0")
+        );
+      }, 1000);
+    };
+
+    socket.on("connect", () => {
+      console.log("Connected. Pending..");
+      socket.emit("matchRequest", { id: user!.id });
+      socket.off("matchRequest");
+    });
+
+    socket.on("disconnect", () => {
+      setOpponent(undefined);
+    });
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
-    requestAnimationFrame(gameLoop);
-
-    // setInterval(() => {
-    //   socket.emit("movePlayer", players[0]);
-
-    //   socket.send("movePlayer", "deneme");
-    // }, 1000);
-
-    setInterval(() => {
-      const time = Date.now() / 1000;
-      const min = Math.floor((time - gameTime) / 60);
-      const sec = Math.floor(time - (gameTime + min * 60));
-      setTimeInfo(
-        min.toString().padStart(2, "0") + ":" + sec.toString().padStart(2, "0")
-      );
-    }, 1000);
-
-    socket.on("connect", () => {
-      console.log("connected");
-    });
 
     return () => {
       clearInterval(timer);
+      clearInterval(getUserInterval);
       socket.disconnect();
       socket.close();
     };
   }, []);
 
+  const handlePlayUser = (user: IUser) => {
+    console.log(user);
+    startGame();
+    setOpponent(user);
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.scoreboard} ref={scoreboardRef}>
-        <div className={styles.playerScore}>
-          <img
-            src={
-              "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-            }
-            className={styles.avatar}
-          ></img>
-          <div className={styles.playerInfo}>
-            <span className={styles.username}>İlknur Yarıkan</span>
-            <span className={styles.score}>{score1}</span>
+    <>
+      {!opponent && (
+        <div>
+          <dialog open className="modal">
+            <div className="modal-box w-11/12 max-w-5xl h-4/6">
+              <h3 className="font-bold text-4xl text-center animate-bounce">
+                User List
+              </h3>
+
+              <div className=" grid grid-cols-4">
+                {userList?.map((x) => (
+                  <div className="flex flex-col items-center">
+                    <img
+                      className="avatar w-24 h-24 rounded-full mb-3"
+                      src={x.user.avatar || ""}
+                    />
+                    <p>{x.user.full_name}</p>
+                    <button
+                      onClick={() => handlePlayUser(x.user)}
+                      className="btn btn-primary"
+                    >
+                      Play
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </dialog>
+        </div>
+      )}
+      <div className={styles.container}>
+        <div className={styles.scoreboard} ref={scoreboardRef}>
+          <div className={styles.playerScore}>
+            <img src={user?.avatar || ""} className={styles.avatar} />
+            <div className={styles.playerInfo}>
+              <span className={styles.username}>{user?.full_name}</span>
+              <span className={styles.score}>{score1}</span>
+            </div>
+          </div>
+
+          <div className={styles.timer}>{timeInfo}</div>
+
+          <div className={styles.playerScore}>
+            <div className={styles.playerInfo}>
+              <span className={styles.score}>{score2}</span>
+              <span className={styles.username}>{opponent?.full_name}</span>
+            </div>
+            <img src={opponent?.avatar || ""} className={styles.avatar} />
           </div>
         </div>
-        <div className={styles.timer}>{timeInfo}</div>
-        <div className={styles.playerScore}>
-          <div className={styles.playerInfo}>
-            <span className={styles.score}>{score2}</span>
-            <span className={styles.username}>İlknur Yarıkan</span>
-          </div>
-          <img
-            src={
-              "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-            }
-            className={styles.avatar}
-          ></img>
+        <div className={styles.game}>
+          <canvas className={styles.canvas} ref={canvasRef}></canvas>
         </div>
       </div>
-      <div className={styles.game}>
-        <canvas className={styles.canvas} ref={canvasRef}></canvas>
-      </div>
-    </div>
+    </>
   );
 }
