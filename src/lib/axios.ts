@@ -1,29 +1,13 @@
-import Axios from 'axios';
+import Axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 const axios = Axios.create({
-	baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
-	headers: {
-		'X-Requested-With': 'XMLHttpRequest',
-		'Content-Type': 'application/json',
-	},
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
 });
 
-axios.interceptors.request.use((config) => {
-	let token = "";
-
-	if (typeof window !== 'undefined') {
-		token = localStorage.getItem("token") || "";
-	}
-
-	if (token) {
-		config.headers.Authorization = `Bearer ${token}`;
-	} else {
-		window.location.href = "/auth";
-		config.headers.Authorization = `Bearer ${token}`;
-	}
-
-	return config;
-});
-
+axios.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) =>
+    Promise.reject(error.response?.data || "Bir şeyler ters gitti")
+);
 
 export default axios;

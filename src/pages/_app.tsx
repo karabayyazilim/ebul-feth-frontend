@@ -1,8 +1,22 @@
-import '@/styles/globals.css'
-import type { AppProps } from 'next/app'
+import "@/styles/globals.css";
+import AuthProvider from "@/auth/AuthContext";
+import { Toaster } from "react-hot-toast";
+import { ReactNode } from "react";
 
-export default function App({ Component, pageProps }: AppProps) {
-  // @ts-ignore
-  const getLayout = Component.getLayout || (page => page);
-  return getLayout(<Component {...pageProps} />);
+interface IAppProps {
+  Component: Function & { getLayout?: (page: ReactNode) => ReactNode };
+  pageProps: any;
+}
+
+export default function App({ Component, pageProps }: IAppProps) {
+  const getLayout = Component.getLayout || ((page) => page);
+
+  return (
+    <>
+      <AuthProvider>
+        <Toaster />
+        {getLayout(<Component {...pageProps} />)}
+      </AuthProvider>
+    </>
+  );
 }

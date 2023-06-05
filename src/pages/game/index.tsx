@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import { Socket } from "socket.io-client";
 import { connectSocket } from "@/api/socket/game";
+import Loading from "@/components/loading";
 
 interface Vector2d {
   X: number;
@@ -365,37 +366,40 @@ export default function Game() {
   }, []);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.scoreboard} ref={scoreboardRef}>
-        <div className={styles.playerScore}>
-          <img
-            src={
-              "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-            }
-            className={styles.avatar}
-          ></img>
-          <div className={styles.playerInfo}>
-            <span className={styles.username}>İlknur Yarıkan</span>
-            <span className={styles.score}>{score1}</span>
+    <>
+      <Loading title="Eşleşme Aranıyor.." subtitle="Lütfen ekranı kapatmayın" />
+      <div className={styles.container}>
+        <div className={styles.scoreboard} ref={scoreboardRef}>
+          <div className={styles.playerScore}>
+            <img
+              src={
+                "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
+              }
+              className={styles.avatar}
+            ></img>
+            <div className={styles.playerInfo}>
+              <span className={styles.username}>İlknur Yarıkan</span>
+              <span className={styles.score}>{score1}</span>
+            </div>
+          </div>
+          <div className={styles.timer}>{timeInfo}</div>
+          <div className={styles.playerScore}>
+            <div className={styles.playerInfo}>
+              <span className={styles.score}>{score2}</span>
+              <span className={styles.username}>İlknur Yarıkan</span>
+            </div>
+            <img
+              src={
+                "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
+              }
+              className={styles.avatar}
+            ></img>
           </div>
         </div>
-        <div className={styles.timer}>{timeInfo}</div>
-        <div className={styles.playerScore}>
-          <div className={styles.playerInfo}>
-            <span className={styles.score}>{score2}</span>
-            <span className={styles.username}>İlknur Yarıkan</span>
-          </div>
-          <img
-            src={
-              "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-            }
-            className={styles.avatar}
-          ></img>
+        <div className={styles.game}>
+          <canvas className={styles.canvas} ref={canvasRef}></canvas>
         </div>
       </div>
-      <div className={styles.game}>
-        <canvas className={styles.canvas} ref={canvasRef}></canvas>
-      </div>
-    </div>
+    </>
   );
 }

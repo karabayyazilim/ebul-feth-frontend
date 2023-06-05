@@ -1,23 +1,15 @@
-import Header from "@/components/Header";
-import Layout from "@/layouts";
+import { ReactNode } from "react";
 import LeaderBoard from "@/components/LeaderBoard";
 import MatchHistory from "@/components/MatchHistory";
-import {useEffect} from "react";
-import axios from "@/lib/axios";
+import DashboardLayout from "@/layouts/DashboardLayout";
 
-Home.getLayout = (page: any) => <Layout>{page}</Layout>
+Home.getLayout = (page: ReactNode) => <DashboardLayout>{page}</DashboardLayout>;
+
 export default function Home() {
-
-	useEffect(() => {
-		axios.get('/auth/my-account').then((res) => {
-			console.log(res.data);
-		});
-	}, []);
-
-	return (
-		<div className="flex gap-3 md:flex-wrap lg:flex-nowrap">
-			<LeaderBoard/>
-			<MatchHistory/>
-		</div>
-	)
+  return (
+    <div className="flex gap-3 md:flex-wrap lg:flex-nowrap">
+      <LeaderBoard />
+      <MatchHistory />
+    </div>
+  );
 }

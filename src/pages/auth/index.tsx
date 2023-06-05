@@ -1,19 +1,29 @@
+import { useAuthContext } from "@/auth/AuthContext";
+import { useEffect } from "react";
+
 export default function Login() {
-	return (
-		<div className="hero min-h-screen bg-base-200">
-			<div className="hero-content flex-col gap-5 lg:flex-row-reverse">
-				<div className="text-center lg:text-left">
-					<h1 className="text-5xl font-bold">Login now!</h1>
-					<p className="py-6">Provident cupiditate voluptatem et in. Quaerat fugiat ut assumenda excepturi exercitationem quasi. In deleniti eaque aut repudiandae et a id nisi.</p>
-				</div>
-				<div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-					<div className="card-body">
-						<div className="form-control">
-							<a href={process.env.NEXT_PUBLIC_INTRA_API_URL} className="btn btn-primary">Intra with login</a>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+  const { logout } = useAuthContext();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      logout();
+    }
+  }, []);
+
+  return (
+    <div className="hero min-h-screen bg-base-200">
+      <div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+        <div className="card-body">
+          <div className="form-control">
+            <a
+              href={process.env.NEXT_PUBLIC_INTRA_API_URL}
+              className="btn btn-primary"
+            >
+              Login with Intra !
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

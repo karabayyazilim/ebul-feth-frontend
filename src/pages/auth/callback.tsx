@@ -1,29 +1,31 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import axios from "axios";
+import { useAuthContext } from "@/auth/AuthContext";
+import toast from "react-hot-toast";
 
 export default function Callback() {
-  const route = useRouter();
-  const { code } = route.query;
+  const { query } = useRouter();
+  const { login } = useAuthContext();
+
+  const redirect = async (code: string) => {
+    try {
+      await login(code);
+      window.location.href = "/";
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
+  };
 
   useEffect(() => {
-    if (code) {
-      axios
-        .post(process.env.NEXT_PUBLIC_BACKEND_URL + "/auth/callback", { code })
-        .then((res) => {
-          localStorage.setItem("token", res.data.token);
-          route.push("/");
-        })
-        .then((err) => {
-          console.log(err);
-          route.push("/auth");
-        });
+    if (typeof query.code === "string") {
+      redirect(query.code);
     }
-  }, [code]);
+  }, [query.code]);
 
   return (
-    <div>
-      <h1>Callback</h1>
+    <div className="hero min-h-screen">
+      <h1 className="text-3xl">Redirecting...</h1>
     </div>
   );
 }
