@@ -1,8 +1,7 @@
-import { useRouter } from "next/router";
 import { useEffect } from "react";
-import axios from "axios";
-import { useAuthContext } from "@/auth/AuthContext";
 import toast from "react-hot-toast";
+import { useRouter } from "next/router";
+import { useAuthContext } from "@/auth/AuthContext";
 
 export default function Callback() {
   const { query } = useRouter();
