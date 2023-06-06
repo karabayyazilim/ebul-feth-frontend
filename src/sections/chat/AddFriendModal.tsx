@@ -2,17 +2,6 @@ import React, {useEffect, useState} from "react";
 import axios from "@/lib/axios";
 import toast from "react-hot-toast";
 
-const friends = [
-	{
-		full_name: 'Ali KARABAY',
-		avatar: 'https://source.unsplash.com/random',
-	},
-	{
-		full_name: 'Görkem DEMİRTAŞ',
-		avatar: 'https://source.unsplash.com/random',
-	},
-];
-
 export default function AddFriendModal() {
 
 	const [activeTab, setActiveTab] = useState('non-friends');
@@ -22,28 +11,28 @@ export default function AddFriendModal() {
 	const handleAddFriend = (friendId: number) => {
 		axios.post('/friend', {
 			friend: friendId
-		}).then((res) => {
+		}).then(() => {
 			toast.success("Friend request sent!");
 			getNonFriends();
-		}).catch((err) => {
+		}).catch(() => {
 			toast.error("An error occurred!");
 		});
 	}
 
 	const handleAcceptFriend = (friendId: number) => {
-		axios.put('/friend/accept/' + friendId).then((res) => {
+		axios.put('/friend/accept/' + friendId).then(() => {
 			toast.success("Friend request accepted!");
 			getFriendRequests();
-		}).catch((err) => {
+		}).catch(() => {
 			toast.error("An error occurred!");
 		});
 	}
 
 	const handleRejectFriend = (friendId: number) => {
-		axios.put('/friend/reject/' + friendId).then((res) => {
+		axios.put('/friend/reject/' + friendId).then(() => {
 			toast.success("Friend request rejected!");
 			getFriendRequests();
-		}).catch((err) => {
+		}).catch(() => {
 			toast.error("An error occurred!");
 		});
 	}
@@ -88,7 +77,7 @@ export default function AddFriendModal() {
 										<div className="flex items-center gap-x-3">
 											<div className="avatar">
 												<div className="w-16 rounded-full">
-													<img src={nonFriend.avatar}/>
+													<img src={nonFriend.avatar} alt={nonFriend.full_name}/>
 												</div>
 											</div>
 											<div>
@@ -113,7 +102,7 @@ export default function AddFriendModal() {
 										<div className="flex items-center gap-x-5">
 											<div className="avatar">
 												<div className="w-16 rounded-full">
-													<img src={request.user.avatar}/>
+													<img src={request.user.avatar} alt={request.user.full_name}/>
 												</div>
 											</div>
 												<span>
