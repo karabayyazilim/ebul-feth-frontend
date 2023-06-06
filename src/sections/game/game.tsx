@@ -1,11 +1,7 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
-import { Socket } from "socket.io-client";
-import { connectSocket } from "@/api/socket/game";
-import Loading from "@/components/loading";
+import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
-import DashboardLayout from "@/layouts/DashboardLayout";
-import axios from "@/lib/axios";
 
 interface Vector2d {
   X: number;
@@ -35,11 +31,11 @@ interface Ball {
   position: Vector2d;
 }
 
-let startGame: () => void;
+interface IGameProps {
+  rival: IUser;
+}
 
-Game.getLayout = (page: ReactNode) => <DashboardLayout>{page}</DashboardLayout>;
-
-export default function Game() {
+export default function Game({ rival }: IGameProps) {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -47,15 +43,6 @@ export default function Game() {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
-
-  const [opponent, setOpponent] = useState<IUser>();
-
-  const [userList, setUserList] = useState<
-    {
-      socketId: string;
-      user: IUser;
-    }[]
-  >();
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -67,7 +54,7 @@ export default function Game() {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    const socket = connectSocket("http://localhost:9000/game");
+    const socket = gameSocket();
 
     const PLAYER_MARGINY = 5;
     const PLAYER_MARGINX = 10;
@@ -155,8 +142,8 @@ export default function Game() {
     const gameLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // drawBall();
-      // moveBall();
+      drawBall();
+      moveBall();
 
       calculatePlayerA();
 
@@ -282,35 +269,21 @@ export default function Game() {
       else setScore2((score) => score + 1);
     };
 
-    const getUserInterval = setInterval(() => {
-      console.log("request");
-      axios.get("/game").then((resp) => setUserList(resp.data));
-    }, 3000);
+    requestAnimationFrame(gameLoop);
 
-    startGame = () => {
-      clearInterval(getUserInterval);
-      requestAnimationFrame(gameLoop);
-
-      timer = setInterval(() => {
-        const time = Date.now() / 1000;
-        const min = Math.floor((time - gameTime) / 60);
-        const sec = Math.floor(time - (gameTime + min * 60));
-        setTimeInfo(
-          min.toString().padStart(2, "0") +
-            ":" +
-            sec.toString().padStart(2, "0")
-        );
-      }, 1000);
-    };
+    timer = setInterval(() => {
+      const time = Date.now() / 1000;
+      const min = Math.floor((time - gameTime) / 60);
+      const sec = Math.floor(time - (gameTime + min * 60));
+      setTimeInfo(
+        min.toString().padStart(2, "0") + ":" + sec.toString().padStart(2, "0")
+      );
+    });
 
     socket.on("connect", () => {
       console.log("Connected. Pending..");
       socket.emit("matchRequest", { id: user!.id });
       socket.off("matchRequest");
-    });
-
-    socket.on("disconnect", () => {
-      setOpponent(undefined);
     });
 
     window.addEventListener("keydown", onKeyDown);
@@ -319,73 +292,35 @@ export default function Game() {
 
     return () => {
       clearInterval(timer);
-      clearInterval(getUserInterval);
       socket.disconnect();
       socket.close();
     };
   }, []);
 
-  const handlePlayUser = (user: IUser) => {
-    console.log(user);
-    startGame();
-    setOpponent(user);
-  };
-
   return (
-    <>
-      {!opponent && (
-        <div>
-          <dialog open className="modal">
-            <div className="modal-box w-11/12 max-w-5xl h-4/6">
-              <h3 className="font-bold text-4xl text-center animate-bounce">
-                User List
-              </h3>
-
-              <div className=" grid grid-cols-4">
-                {userList?.map((x) => (
-                  <div className="flex flex-col items-center">
-                    <img
-                      className="avatar w-24 h-24 rounded-full mb-3"
-                      src={x.user.avatar || ""}
-                    />
-                    <p>{x.user.full_name}</p>
-                    <button
-                      onClick={() => handlePlayUser(x.user)}
-                      className="btn btn-primary"
-                    >
-                      Play
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </dialog>
-        </div>
-      )}
-      <div className={styles.container}>
-        <div className={styles.scoreboard} ref={scoreboardRef}>
-          <div className={styles.playerScore}>
-            <img src={user?.avatar || ""} className={styles.avatar} />
-            <div className={styles.playerInfo}>
-              <span className={styles.username}>{user?.full_name}</span>
-              <span className={styles.score}>{score1}</span>
-            </div>
-          </div>
-
-          <div className={styles.timer}>{timeInfo}</div>
-
-          <div className={styles.playerScore}>
-            <div className={styles.playerInfo}>
-              <span className={styles.score}>{score2}</span>
-              <span className={styles.username}>{opponent?.full_name}</span>
-            </div>
-            <img src={opponent?.avatar || ""} className={styles.avatar} />
+    <div className={styles.container}>
+      <div className={styles.scoreboard} ref={scoreboardRef}>
+        <div className={styles.playerScore}>
+          <img src={user?.avatar || ""} className={styles.avatar} />
+          <div className={styles.playerInfo}>
+            <span className={styles.username}>{user?.full_name}</span>
+            <span className={styles.score}>{score1}</span>
           </div>
         </div>
-        <div className={styles.game}>
-          <canvas className={styles.canvas} ref={canvasRef}></canvas>
+
+        <div className={styles.timer}>{timeInfo}</div>
+
+        <div className={styles.playerScore}>
+          <div className={styles.playerInfo}>
+            <span className={styles.score}>{score2}</span>
+            <span className={styles.username}>{rival.full_name}</span>
+          </div>
+          <img src={rival.avatar || ""} className={styles.avatar} />
         </div>
       </div>
-    </>
+      <div className={styles.game}>
+        <canvas className={styles.canvas} ref={canvasRef}></canvas>
+      </div>
+    </div>
   );
 }
