@@ -1,7 +1,11 @@
+import { ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
-import { useEffect, useRef, useState } from "react";
-import { gameSocket } from "@/api/socket/game";
+import { Socket } from "socket.io-client";
+import { connectSocket } from "@/api/socket/game";
+import Loading from "@/components/loading";
 import { useAuthContext } from "@/auth/AuthContext";
+import DashboardLayout from "@/layouts/DashboardLayout";
+import axios from "@/lib/axios";
 
 interface Vector2d {
   X: number;
@@ -31,11 +35,11 @@ interface Ball {
   position: Vector2d;
 }
 
-interface IGameProps {
-  rival: IUser;
-}
+let startGame: () => void;
 
-export default function Game({ rival }: IGameProps) {
+Game.getLayout = (page: ReactNode) => <DashboardLayout>{page}</DashboardLayout>;
+
+export default function Game() {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,15 @@ export default function Game({ rival }: IGameProps) {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
+
+  const [opponent, setOpponent] = useState<IUser>();
+
+  const [userList, setUserList] = useState<
+    {
+      socketId: string;
+      user: IUser;
+    }[]
+  >();
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -54,7 +67,7 @@ export default function Game({ rival }: IGameProps) {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    const socket = gameSocket();
+    const socket = connectSocket("http://localhost:9000/game");
 
     const PLAYER_MARGINY = 5;
     const PLAYER_MARGINX = 10;
@@ -142,8 +155,8 @@ export default function Game({ rival }: IGameProps) {
     const gameLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      drawBall();
-      moveBall();
+      // drawBall();
+      // moveBall();
 
       calculatePlayerA();
 
@@ -197,6 +210,16 @@ export default function Game({ rival }: IGameProps) {
       );
     };
 
+    /*function playBallSound(): void {
+      const audio = new Audio("/assets/ballBounce.mp3");
+      audio.play();
+    }
+
+    function scoreSound(): void {
+      const audio = new Audio("/assets/score.mp3");
+      audio.play();
+    }*/
+
     socket.on("movePlayer", (data: "up" | "down" | number | null) => {
       guestPos = data;
       console.log(data);
@@ -226,19 +249,17 @@ export default function Game({ rival }: IGameProps) {
         let target = ball.position.X + ball.radius > canvas.width ? 0 : 1;
         setScore(target, player.score + 1);
         console.log("reset ball");
+        /*scoreSound();*/
         resetBall();
-      } else {
-        for (let i = 0; i < 2; i++) {
-          if (
-            ballX >= player.position.X &&
-            ballX <= player.position.X + player.width &&
-            ballY >= player.position.Y &&
-            ballY <= player.position.Y + player.height
-          ) {
-            ball.speed.X = -ball.speed.X;
-            ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
-          }
-        }
+      } else if (
+        ballX >= player.position.X &&
+        ballX <= player.position.X + player.width &&
+        ballY >= player.position.Y &&
+        ballY <= player.position.Y + player.height
+      ) {
+        ball.speed.X = -ball.speed.X;
+        /*playBallSound(); Hocam ses ekledik sanırım hataların var düzelttiğin zaman 213, 221, 252 ve bu satırları açarsan oyun kısmnda küçük bir sürpriz ile karşılaşacaksınız. - SAYGILAR OYUN DEPARTMANI */
+        ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
       }
     };
 
@@ -261,20 +282,35 @@ export default function Game({ rival }: IGameProps) {
       else setScore2((score) => score + 1);
     };
 
-    requestAnimationFrame(gameLoop);
+    const getUserInterval = setInterval(() => {
+      console.log("request");
+      axios.get("/game").then((resp) => setUserList(resp.data));
+    }, 3000);
 
-    timer = setInterval(() => {
-      const time = Date.now() / 1000;
-      const min = Math.floor((time - gameTime) / 60);
-      const sec = Math.floor(time - (gameTime + min * 60));
-      setTimeInfo(
-        min.toString().padStart(2, "0") + ":" + sec.toString().padStart(2, "0")
-      );
-    });
+    startGame = () => {
+      clearInterval(getUserInterval);
+      requestAnimationFrame(gameLoop);
+
+      timer = setInterval(() => {
+        const time = Date.now() / 1000;
+        const min = Math.floor((time - gameTime) / 60);
+        const sec = Math.floor(time - (gameTime + min * 60));
+        setTimeInfo(
+          min.toString().padStart(2, "0") +
+            ":" +
+            sec.toString().padStart(2, "0")
+        );
+      }, 1000);
+    };
 
     socket.on("connect", () => {
-      socket.emit("match", { id: user!.id });
-      socket.off("match");
+      console.log("Connected. Pending..");
+      socket.emit("matchRequest", { id: user!.id });
+      socket.off("matchRequest");
+    });
+
+    socket.on("disconnect", () => {
+      setOpponent(undefined);
     });
 
     window.addEventListener("keydown", onKeyDown);
@@ -283,35 +319,73 @@ export default function Game({ rival }: IGameProps) {
 
     return () => {
       clearInterval(timer);
+      clearInterval(getUserInterval);
       socket.disconnect();
       socket.close();
     };
   }, []);
 
+  const handlePlayUser = (user: IUser) => {
+    console.log(user);
+    startGame();
+    setOpponent(user);
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.scoreboard} ref={scoreboardRef}>
-        <div className={styles.playerScore}>
-          <img src={user?.avatar || ""} className={styles.avatar} />
-          <div className={styles.playerInfo}>
-            <span className={styles.username}>{user?.full_name}</span>
-            <span className={styles.score}>{score1}</span>
+    <>
+      {!opponent && (
+        <div>
+          <dialog open className="modal">
+            <div className="modal-box w-11/12 max-w-5xl h-4/6">
+              <h3 className="font-bold text-4xl text-center animate-bounce">
+                User List
+              </h3>
+
+              <div className=" grid grid-cols-4">
+                {userList?.map((x) => (
+                  <div className="flex flex-col items-center">
+                    <img
+                      className="avatar w-24 h-24 rounded-full mb-3"
+                      src={x.user.avatar || ""}
+                    />
+                    <p>{x.user.full_name}</p>
+                    <button
+                      onClick={() => handlePlayUser(x.user)}
+                      className="btn btn-primary"
+                    >
+                      Play
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </dialog>
+        </div>
+      )}
+      <div className={styles.container}>
+        <div className={styles.scoreboard} ref={scoreboardRef}>
+          <div className={styles.playerScore}>
+            <img src={user?.avatar || ""} className={styles.avatar} />
+            <div className={styles.playerInfo}>
+              <span className={styles.username}>{user?.full_name}</span>
+              <span className={styles.score}>{score1}</span>
+            </div>
+          </div>
+
+          <div className={styles.timer}>{timeInfo}</div>
+
+          <div className={styles.playerScore}>
+            <div className={styles.playerInfo}>
+              <span className={styles.score}>{score2}</span>
+              <span className={styles.username}>{opponent?.full_name}</span>
+            </div>
+            <img src={opponent?.avatar || ""} className={styles.avatar} />
           </div>
         </div>
-
-        <div className={styles.timer}>{timeInfo}</div>
-
-        <div className={styles.playerScore}>
-          <div className={styles.playerInfo}>
-            <span className={styles.score}>{score2}</span>
-            <span className={styles.username}>{rival.full_name}</span>
-          </div>
-          <img src={rival.avatar || ""} className={styles.avatar} />
+        <div className={styles.game}>
+          <canvas className={styles.canvas} ref={canvasRef}></canvas>
         </div>
       </div>
-      <div className={styles.game}>
-        <canvas className={styles.canvas} ref={canvasRef}></canvas>
-      </div>
-    </div>
+    </>
   );
 }
