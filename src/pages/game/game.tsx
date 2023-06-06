@@ -210,6 +210,16 @@ export default function Game() {
       );
     };
 
+    /*function playBallSound(): void {
+      const audio = new Audio("/assets/ballBounce.mp3");
+      audio.play();
+    }
+
+    function scoreSound(): void {
+      const audio = new Audio("/assets/score.mp3");
+      audio.play();
+    }*/
+
     socket.on("movePlayer", (data: "up" | "down" | number | null) => {
       guestPos = data;
       console.log(data);
@@ -239,19 +249,17 @@ export default function Game() {
         let target = ball.position.X + ball.radius > canvas.width ? 0 : 1;
         setScore(target, player.score + 1);
         console.log("reset ball");
+        /*scoreSound();*/
         resetBall();
-      } else {
-        for (let i = 0; i < 2; i++) {
-          if (
+      } else if (
             ballX >= player.position.X &&
             ballX <= player.position.X + player.width &&
             ballY >= player.position.Y &&
             ballY <= player.position.Y + player.height
           ) {
             ball.speed.X = -ball.speed.X;
+            /*playBallSound(); Hocam ses ekledik sanırım hataların var düzelttiğin zaman 213, 221, 252 ve bu satırları açarsan oyun kısmnda küçük bir sürpriz ile karşılaşacaksınız. - SAYGILAR OYUN DEPARTMANI */
             ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
-          }
-        }
       }
     };
 
