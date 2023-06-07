@@ -44,6 +44,18 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 		});
 	}
 
+	const handleAssignAdmin = (userId: number) => {
+		axios.put('/channel/assign-admin/' + channelId, {
+			userId
+		}).then(() => {
+			toast.success("Admin assigned!");
+			getChannelNonMembers();
+			getChannelMembers();
+		}).catch(() => {
+			toast.error("An error occurred!");
+		});
+	}
+
 	const getChannelNonMembers = () => {
 		axios.get('/channel/non-members/' + channelId).then((res) => {
 			setChannelNonMembers(res.data);
@@ -121,22 +133,31 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 												<div>
 													<span>
 														{channelMember.user.full_name}
+														{}
+														{channelMember.is_owner && (
+															<span className="text-xs font-bold"> (Owner)</span>
+														)}
+
+														{channelMember.is_admin && (
+															<span className="text-xs font-bold"> (Admin)</span>
+														)}
 													</span>
 												</div>
 											</div>
-											{(channelMember.is_owner || channelMember.is_admin) && (
-												<div className="dropdown dropdown-end">
-													<label tabIndex={0} className="btn">
-														<AdjustmentsHorizontalIcon className="w-4"/>
-													</label>
-													<ul tabIndex={0}
-														className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-														<li><a>Assign Admin</a></li>
-														<li><a>Banned</a></li>
-														<li><a>Mute</a></li>
-													</ul>
-												</div>
-											)}
+											{/* {(channelMember.is_owner || channelMember.is_admin) && ( */}
+											<div className="dropdown dropdown-end">
+												<label tabIndex={0} className="btn">
+													<AdjustmentsHorizontalIcon className="w-4"/>
+												</label>
+												<ul tabIndex={0}
+													className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+													<li><a onClick={() => handleAssignAdmin(channelMember.user.id)}>Assign
+														Admin</a></li>
+													<li><a>Banned</a></li>
+													<li><a>Mute</a></li>
+												</ul>
+											</div>
+											{/* )} */}
 										</div>
 									</li>
 								))

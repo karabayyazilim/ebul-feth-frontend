@@ -117,6 +117,13 @@ export default function Chat() {
 		});
 	}
 
+	const handleLeaveChannel = (channelId: number) => {
+		axios.post('/channel/leave/' + channelId).then((res) => {
+			toast.success("Channel left!");
+			setChannels(channels.filter((channel) => channel.channel.id !== channelId));
+		});
+	}
+
 	const scrollToBottom = () => {
 		if (chatRef.current) {
 			chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -241,13 +248,12 @@ export default function Chat() {
 												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
 												<li>
 													{(channel.is_owner || channel.is_admin) && (
-														<>
-															<label htmlFor="openModal">Setting</label>
-															<label
-																onClick={() => handleDeleteChannel(channel.channel.id)}>Delete</label>
-														</>
+														<label htmlFor="openModal">Setting</label>
 													)}
-													<label htmlFor="">Leave</label>
+													{channel.is_owner && (
+														<label onClick={() => handleDeleteChannel(channel.channel.id)}>Delete</label>
+													)}
+													<label onClick={() => handleLeaveChannel(channel.channel.id)}>Leave</label>
 												</li>
 											</ul>
 										</div>
@@ -332,7 +338,7 @@ export default function Chat() {
 				)}
 			</div>
 
-			{selectedChannel && <ChannelSettingModal channelId={selectedChannel} friends={friends}/>}
+			{selectedChannel !== 0 && <ChannelSettingModal channelId={selectedChannel} friends={friends}/>}
 			<CreateChannelModal/>
 			<AddFriendModal/>
 		</>
