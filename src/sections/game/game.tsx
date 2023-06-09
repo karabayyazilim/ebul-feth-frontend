@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
+import {Simulate} from "react-dom/test-utils";
+import play = Simulate.play;
 
 interface Vector2d {
   X: number;
@@ -33,9 +35,10 @@ interface Ball {
 
 interface IGameProps {
   rival: IUser;
+  socket: any;
 }
 
-export default function Game({ rival }: IGameProps) {
+export default function Game({ rival, socket }: IGameProps) {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -53,8 +56,6 @@ export default function Game({ rival }: IGameProps) {
 
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-
-    const socket = gameSocket();
 
     const PLAYER_MARGINY = 5;
     const PLAYER_MARGINX = 10;
@@ -103,24 +104,29 @@ export default function Game({ rival }: IGameProps) {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!keyPressed[e.key]) {
-        if (e.key === "w") {
-          socket.emit("movePlayer", "up");
-        } else if (e.key === "s") {
-          socket.emit("movePlayer", "down");
-        }
+      if (e.key == 'w') {
+        player.speed += 0.5;
+        player.target -= player.position.Y + player.speed;
+        //socket.emit("server:movePlayer", player.position);
+      } else if (e.key == 's') {
+        player.speed += 0.5;
+        player.target += player.position.Y + player.speed;
+        //socket.emit("server:movePlayer", player.position);
       }
-      keyPressed[e.key] = true;
     };
+
+    setInterval(() => {
+      socket.emit("server:movePlayer", player.position);
+    },50);
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "w" || e.key === "s") {
         player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
         player.target = player.position.Y;
-        socket.emit("movePlayer", player.position.Y);
       }
-      delete keyPressed[e.key];
     };
+
+
 
     const onResize = (event: Event) => {
       canvas.width = canvas.clientWidth;
@@ -143,7 +149,7 @@ export default function Game({ rival }: IGameProps) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBall();
-      moveBall();
+      //moveBall();
 
       calculatePlayerA();
 
@@ -207,15 +213,21 @@ export default function Game({ rival }: IGameProps) {
       audio.play();
     }*/
 
-    socket.on("movePlayer", (data: "up" | "down" | number | null) => {
-      guestPos = data;
-      console.log(data);
+    socket.on("movePlayer", (data: any) => {
+      guest.position = {X: guest.position.X, Y: data.Y};
+      //console.log(data);
     });
+
+    socket.on("moveBall", (data: any) => {
+      ball.position = data;
+      console.log(data);
+    })
 
     const drawBall = () => {
       ctx.beginPath();
       ctx.arc(ball.position.X, ball.position.Y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = "#00BFFF";
+     // ctx.fillStyle = "deeppink";
       ctx.fill();
       ctx.closePath();
     };
@@ -280,20 +292,20 @@ export default function Game({ rival }: IGameProps) {
       );
     });
 
+
     socket.on("connect", () => {
       console.log("Connected. Pending..");
-      socket.emit("matchRequest", { id: user!.id });
-      socket.off("matchRequest");
     });
 
+
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
 
     return () => {
       clearInterval(timer);
-      socket.disconnect();
-      socket.close();
+      //socket.disconnect();
+      //socket.close();
     };
   }, []);
 
@@ -319,6 +331,7 @@ export default function Game({ rival }: IGameProps) {
         </div>
       </div>
       <div className={styles.game}>
+        <div className={styles.countDown}>5</div>
         <canvas className={styles.canvas} ref={canvasRef}></canvas>
       </div>
     </div>

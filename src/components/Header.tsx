@@ -32,7 +32,7 @@ export default function Header() {
               </Link>
             </li>
             <li>
-              <Link href={"/game"} className="btn btn-ghost">
+              <Link href={"/game/game"} className="btn btn-ghost">
                 Play
               </Link>
             </li>

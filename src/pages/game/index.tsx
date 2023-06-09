@@ -40,7 +40,7 @@ const drawCenterLine = (
   context.beginPath();
   context.moveTo(canvas.width / 2, 0);
   context.lineTo(canvas.width / 2, canvas.height);
-  context.strokeStyle = "black";
+  context.strokeStyle = "deeppink";
   context.lineWidth = canvas.width * 0.0025;
   context.stroke();
 };
@@ -104,10 +104,17 @@ export default function Game() {
     ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
-    const socket = connectSocket("http://localhost:9000/game");
+   // const socket = connectSocket("http://localhost:9000/game");
 
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
+/*    let containerWidth = canvas.offsetWidth;
+    let containerHeight = canvas.offsetHeight;
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
+
+    let width = canvas.width;
+    let height = canvas.height;*/
 
     const bodyElement = document.querySelector("body");
     if (bodyElement) {
@@ -354,20 +361,19 @@ export default function Game() {
       );
     }, 1000);
 
-    socket.on("connect", () => {
-      console.log("connected");
-    });
+   // socket.on("connect", () => {
+    //  console.log("connected");
+   // });
 
     return () => {
       clearInterval(timer);
-      socket.disconnect();
-      socket.close();
+     // socket.disconnect();
+      //socket.close();
     };
   }, []);
 
   return (
     <>
-      <Loading title="Eşleşme Aranıyor.." subtitle="Lütfen ekranı kapatmayın" />
       <div className={styles.container}>
         <div className={styles.scoreboard} ref={scoreboardRef}>
           <div className={styles.playerScore}>

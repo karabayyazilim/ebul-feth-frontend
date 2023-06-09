@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import {ReactNode, useEffect, useRef, useState} from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import Matching from "@/sections/game/matching";
 import FinishGame from "@/sections/game/finish-game";
@@ -11,11 +11,11 @@ GamePage.getLayout = (page: ReactNode) => (
 );
 
 enum Events {
-  start = "start",
-  match = "match",
-  finish = "finish",
   connect = "connect",
   disconnect = "disconnect",
+  start = "client:start",
+  finish = "client:finish",
+  match = "server:match",
 }
 
 export default function GamePage() {
@@ -27,31 +27,40 @@ export default function GamePage() {
 
   const [gameOver, setGameOver] = useState(false);
 
+  let socket: any = useRef<any>(null);
+
   useEffect(() => {
     if (!user) return;
 
-    const socket = gameSocket();
+    socket.current = gameSocket();
 
-    socket.on(Events.connect, () => {
-      socket.emit(Events.match, { id: user!.id });
+    socket.current.on(Events.connect, () => {
+      console.log("connect");
     });
 
-    socket.on(Events.start, (rival) => {
+    socket.current.emit(Events.match, { id: user!.id });
+
+    socket.current.on(Events.start, (rival: any) => {
       setPending(false);
       setGameOver(false);
       setRival(rival);
     });
 
-    socket.on(Events.finish, () => {
+
+    socket.current.on(Events.finish, () => {
       setPending(false);
       setGameOver(true);
     });
 
-    socket.on(Events.disconnect, () => {
+    socket.current.on(Events.disconnect, () => {
       setPending(false);
       setGameOver(true);
     });
-  }, [user]);
+
+    return () => {
+      socket.current.disconnect();
+    };
+  }, []);
 
   if (pending) {
     return <Matching />;
@@ -62,6 +71,6 @@ export default function GamePage() {
   }
 
   if (rival) {
-    return <Game rival={rival} />;
+    return <Game rival={rival} socket={socket.current} />;
   }
 }
