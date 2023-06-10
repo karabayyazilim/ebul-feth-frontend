@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
-import {Simulate} from "react-dom/test-utils";
-import play = Simulate.play;
 
 interface Vector2d {
   X: number;
   Y: number;
+}
+
+interface IGameProps {
+  rival: IUser;
+  socket: any;
 }
 
 interface Player {
@@ -19,24 +22,17 @@ interface Player {
   target: number;
   position: Vector2d;
 }
-
-interface Guest {
-  width: number;
-  color: string;
-  height: number;
-  position: Vector2d;
-}
-
 interface Ball {
   radius: number;
   speed: Vector2d;
   position: Vector2d;
 }
 
-interface IGameProps {
-  rival: IUser;
-  socket: any;
-}
+const PLAYER_MARGINY = 5;
+const PLAYER_MARGINX = 10;
+const PLAYER_MOVE_SPEED = 5;
+const PLAYER_WIDTH_SCALE = 0.01;
+const PLAYER_HEIGTH_SCALE = 0.25;
 
 export default function Game({ rival, socket }: IGameProps) {
   const { user } = useAuthContext();
@@ -57,16 +53,8 @@ export default function Game({ rival, socket }: IGameProps) {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    const PLAYER_MARGINY = 5;
-    const PLAYER_MARGINX = 10;
-    const PLAYER_MOVE_SPEED = 5;
-    const PLAYER_WIDTH_SCALE = 0.01;
-    const PLAYER_HEIGTH_SCALE = 0.25;
-    const keyPressed: { [x: string]: boolean } = {};
-
     let timer: NodeJS.Timer;
     let gameTime: number = Date.now() / 1000;
-    let guestPos: "up" | "down" | number | null = null;
 
     const ball: Ball = {
       position: {
@@ -93,24 +81,14 @@ export default function Game({ rival, socket }: IGameProps) {
       score: 0,
     };
 
-    const guest: Guest = {
-      color: "red",
-      height: canvas.height * PLAYER_HEIGTH_SCALE,
-      position: {
-        X: canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX,
-        Y: player.position.Y,
-      },
-      width: canvas.width * PLAYER_WIDTH_SCALE,
-    };
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key == 'w') {
         player.speed += 0.5;
-        player.target -= player.position.Y + player.speed;
+        player.target += player.position.Y + player.speed;
         //socket.emit("server:movePlayer", player.position);
       } else if (e.key == 's') {
         player.speed += 0.5;
-        player.target += player.position.Y + player.speed;
+        player.target = player.position.Y + player.speed;
         //socket.emit("server:movePlayer", player.position);
       }
     };
@@ -126,13 +104,14 @@ export default function Game({ rival, socket }: IGameProps) {
       }
     };
 
-
-
     const onResize = (event: Event) => {
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
+      //Calculate player & ball pos
     };
 
+
+    /*
     const calculatePlayerA = async () => {
       setTimeout(() => {
         if (keyPressed["s"]) {
@@ -145,33 +124,22 @@ export default function Game({ rival, socket }: IGameProps) {
       });
     };
 
+    */
+
     const gameLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBall();
       //moveBall();
 
-      calculatePlayerA();
+      //calculatePlayerA();
 
       movePlayer(player);
       drawPlayer(player);
 
-      moveGuest(guest);
-      drawPlayer(guest);
-
       requestAnimationFrame(gameLoop);
     };
 
-    const moveGuest = (guest: Guest) => {
-      const speed = player.speed;
-      if (guestPos === "up") {
-        guest.position.Y -= player.speed;
-      } else if (guestPos === "down") {
-        guest.position.Y += player.speed;
-      } else if (typeof guestPos === "number") {
-        guest.position.Y = guestPos;
-      }
-    };
 
     const movePlayer = (player: Player) => {
       const speed = player.speed;
@@ -193,7 +161,7 @@ export default function Game({ rival, socket }: IGameProps) {
       }
     };
 
-    const drawPlayer = (player: Player | Guest) => {
+    const drawPlayer = (player: Player) => {
       ctx.fillStyle = player.color;
       ctx.fillRect(
         player.position.X,
@@ -214,20 +182,15 @@ export default function Game({ rival, socket }: IGameProps) {
     }*/
 
     socket.on("movePlayer", (data: any) => {
-      guest.position = {X: guest.position.X, Y: data.Y};
+
       //console.log(data);
     });
 
-    socket.on("moveBall", (data: any) => {
-      ball.position = data;
-      console.log(data);
-    })
 
     const drawBall = () => {
       ctx.beginPath();
       ctx.arc(ball.position.X, ball.position.Y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = "#00BFFF";
-     // ctx.fillStyle = "deeppink";
       ctx.fill();
       ctx.closePath();
     };
@@ -281,8 +244,11 @@ export default function Game({ rival, socket }: IGameProps) {
       else setScore2((score) => score + 1);
     };
 
-    requestAnimationFrame(gameLoop);
+    //?
+    //requestAnimationFrame(gameLoop);
 
+
+    //Todo: Süreyi hesaplayacak kütüphane kullan
     timer = setInterval(() => {
       const time = Date.now() / 1000;
       const min = Math.floor((time - gameTime) / 60);
@@ -293,19 +259,15 @@ export default function Game({ rival, socket }: IGameProps) {
     });
 
 
-    socket.on("connect", () => {
-      console.log("Connected. Pending..");
-    });
-
 
     window.addEventListener("keydown", onKeyDown);
-     window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
 
     return () => {
       clearInterval(timer);
-      //socket.disconnect();
-      //socket.close();
+      socket.disconnect();
+      socket.close();
     };
   }, []);
 

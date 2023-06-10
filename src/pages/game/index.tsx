@@ -1,259 +1,204 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
-import { Socket } from "socket.io-client";
-import { connectSocket } from "@/api/socket/game";
-import Loading from "@/components/loading";
+import { gameSocket } from "@/api/socket/game";
+import { useAuthContext } from "@/auth/AuthContext";
+
+
 
 interface Vector2d {
   X: number;
   Y: number;
 }
 
+interface IGameProps {
+  rival: IUser;
+  socket: any;
+}
+
 interface Player {
+  width: number;
+  speed: number;
+  score: number;
+  color: string;
+  height: number;
+  target: number;
   position: Vector2d;
-  playerWidth: number;
-  playerHeight: number;
-  playerTargetY: number;
-  playerSpeed: number;
-  playerColor: string;
-  playerScore: number;
 }
-
-const keyPressed: { [x: string]: boolean } = {};
-
 interface Ball {
+  radius: number;
+  speed: Vector2d;
   position: Vector2d;
-  ballRadius: number;
-  ballSpeed: Vector2d;
 }
 
+const PLAYER_MARGINY = 5;
+const PLAYER_MARGINX = 10;
 const PLAYER_MOVE_SPEED = 5;
 const PLAYER_WIDTH_SCALE = 0.01;
 const PLAYER_HEIGTH_SCALE = 0.25;
-const PLAYER_MARGINX = 10;
-const PLAYER_MARGINY = 5;
 
-const drawCenterLine = (
-  context: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement
-) => {
-  context.beginPath();
-  context.moveTo(canvas.width / 2, 0);
-  context.lineTo(canvas.width / 2, canvas.height);
-  context.strokeStyle = "deeppink";
-  context.lineWidth = canvas.width * 0.0025;
-  context.stroke();
-};
+const keyPressed: { [x: string]: boolean } = {};
 
-const drawCenterCircle = (
-  context: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement
-) => {
-  const radius = Math.min(canvas.width, canvas.height) * 0.12;
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-
-  context.beginPath();
-  context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-  context.strokeStyle = "green";
-  context.lineWidth = canvas.width * 0.0025;
-  context.stroke();
-};
-
-const drawHorizontalLine = (
-  context: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement
-) => {
-  context.beginPath();
-  context.moveTo(0, 100);
-  context.lineTo(canvas.width, 100);
-  context.stroke();
-};
-
-const drawHorizontalLine_2 = (
-  context: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement
-) => {
-  context.beginPath();
-  context.moveTo(0, canvas.height - 100);
-  context.lineTo(canvas.width, canvas.height - 100);
-  context.stroke();
-};
-
-export default function Game() {
+export default function Game({ rival, socket }: IGameProps) {
+  const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
 
+  let gameState = false;
+  let countDown = 3;
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
 
-  let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
-  let ball: Ball;
-  let players: Player[];
-  let ballRadius: number;
-  let timer: any;
-  let gameTime: number = Date.now() / 1000;
+
+  //socket  = gameSocket();
 
   useEffect(() => {
-    canvas = canvasRef.current as HTMLCanvasElement;
-
+    let canvas = canvasRef.current as HTMLCanvasElement;
     if (!canvas) return;
 
-    ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
-   // const socket = connectSocket("http://localhost:9000/game");
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-/*    let containerWidth = canvas.offsetWidth;
-    let containerHeight = canvas.offsetHeight;
-    canvas.width = containerWidth;
-    canvas.height = containerHeight;
+    let timer: NodeJS.Timer;
+    let gameTime: number = Date.now() / 1000;
 
-    let width = canvas.width;
-    let height = canvas.height;*/
-
-    const bodyElement = document.querySelector("body");
-    if (bodyElement) {
-      bodyElement.style.height = "100vh";
-    }
-
-    ball = {
+    const ball: Ball = {
       position: {
         X: canvas.width / 2,
         Y: canvas.height / 2,
       },
-      ballSpeed: {
+      speed: {
         X: canvas.width * 0.008,
         Y: canvas.height * 0.008,
       },
-      ballRadius: canvas.width * 0.01,
+      radius: canvas.width * 0.01,
     };
 
-    players = [
-      {
-        playerWidth: canvas.width * PLAYER_WIDTH_SCALE,
-        playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
-        position: {
-          X: PLAYER_MARGINX,
-          Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-        },
-        playerTargetY:
-          canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-        playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-        playerColor: "#00CED1",
-        playerScore: 0,
+    const player: Player = {
+      width: canvas.width * PLAYER_WIDTH_SCALE,
+      height: canvas.height * PLAYER_HEIGTH_SCALE,
+      position: {
+        X: PLAYER_MARGINX,
+        Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
       },
-      {
-        playerWidth: canvas.width * PLAYER_WIDTH_SCALE,
-        playerHeight: canvas.height * PLAYER_HEIGTH_SCALE,
-        position: {
-          X: canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX,
-          Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-        },
-        playerTargetY:
-          canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-        playerSpeed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-        playerColor: "#00CED1",
-        playerScore: 0,
-      },
-    ];
+      target: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
+      speed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
+      color: "lightpink",
+      score: 0,
+    };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Eğer tuşa basılırsa keyPressed objesine basılan tuş atanacak,
-      // tuştan el kaldırılırsa objeden silinecek. Bu sayede multiple
-      // her 2 player için de tuş kombinasyonları yakalanabilir
+      if (e.key == 'w') {
+        player.speed += 0.5;
+        player.target -= player.position.Y + player.speed;
+        //socket.emit("server:movePlayer", player.position);
+      } else if (e.key == 's') {
+        player.speed += 0.5;
+        player.target += player.position.Y + player.speed;
+        //socket.emit("server:movePlayer", player.position);
+      }
       keyPressed[e.key] = true;
     };
 
-    const onKeyUp = (e: KeyboardEvent) => {
-      delete keyPressed[e.key];
+    setInterval(() => {
+      //socket.emit("server:movePlayer", player.position);
+    },50);
 
-      // Tuş kaldırma sonrası hızları sıfırlama
-      if (e.key === "s" || e.key === "w") {
-        players[0].playerSpeed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
-        players[0].playerTargetY = players[0].position.Y;
-      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        players[1].playerSpeed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
-        players[1].playerTargetY = players[1].position.Y;
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "w" || e.key === "s") {
+        player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
+        player.target = player.position.Y;
       }
+      delete keyPressed[e.key];
     };
 
     const onResize = (event: Event) => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      // TODO: resize için diğer yönler ve boyutlar fixlenecek
-      players[1].position.X =
-        canvas.width - canvas.width * PLAYER_WIDTH_SCALE - PLAYER_MARGINX;
+      const oldHeight = canvas.height;
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      player.height = canvas.height * PLAYER_HEIGTH_SCALE;
+      player.width = canvas.width * PLAYER_WIDTH_SCALE;
+      player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025)
+      const scale = player.position.Y  * 100 / oldHeight;
+     // console.log(oldHeight, canvas.offsetHeight);
+      player.position.Y = scale * canvas.height / 100;
+      player.target = player.position.Y;
+      //Calculate player & ball pos
+
+      ball.radius = canvas.width * 0.01;
     };
+
+
 
     const calculatePlayerA = async () => {
       setTimeout(() => {
         if (keyPressed["s"]) {
-          players[0].playerSpeed += 0.1;
-          players[0].playerTargetY +=
-            players[0].position.Y + players[0].playerSpeed;
+          player.speed += 0.1;
+          player.target += player.position.Y + player.speed;
         } else if (keyPressed["w"]) {
-          players[0].playerSpeed += 0.1;
-          players[0].playerTargetY -=
-            players[0].position.Y + players[0].playerSpeed;
+          player.speed += 0.1;
+          player.target -= player.position.Y + player.speed;
         }
       });
     };
 
-    const calculatePlayerB = async () => {
-      setTimeout(() => {
-        if (keyPressed["ArrowDown"]) {
-          players[1].playerSpeed += 0.1;
-          players[1].playerTargetY +=
-            players[1].position.Y + players[1].playerSpeed;
-        } else if (keyPressed["ArrowUp"]) {
-          players[1].playerSpeed += 0.1;
-          players[1].playerTargetY -=
-            players[1].position.Y + players[1].playerSpeed;
-        }
-      });
-    };
 
+
+    var preterit = setInterval(() => {
+      countDown--;
+      if (countDown === 0) {
+        gameState = true;
+        clearInterval(preterit);
+      }
+    }, 1000);
+
+    function drawText() {
+
+      var fontSize = canvas.width * 0.10;
+      ctx.font = fontSize + 'px Arial';
+      ctx.fillStyle = 'green';
+      ctx.textAlign = 'center';
+      ctx.fillText(countDown.toString(), canvas.width / 2, canvas.height / 2);
+
+    }
     const gameLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBall();
-      moveBall();
-      // console.log("DRAW");
+      drawPlayer(player);
+      if(countDown > 0)
+        drawText();
 
-      // tuş hesaplamaları her iki playerin de asenkron olarak çalışması için
-      // asenkron fonksiyonlara çevirildi
+      if(gameState == false)
+        return;
+
       calculatePlayerA();
-      calculatePlayerB();
 
-      drawHorizontalLine(ctx, canvas);
-      drawHorizontalLine_2(ctx, canvas);
-      drawCenterCircle(ctx, canvas);
-      drawCenterLine(ctx, canvas);
-      for (let i = 0; i < 2; i++) {
-        movePlayer(players[i]);
-        drawPlayer(players[i]);
-      }
-      requestAnimationFrame(gameLoop);
+      movePlayer(player);
+      moveBall();
+
+      //requestAnimationFrame(gameLoop);
     };
 
+
     const movePlayer = (player: Player) => {
-      const speed = player.playerSpeed;
-      if (player.position.Y < player.playerTargetY) {
+      const speed = player.speed;
+      if (player.position.Y < player.target) {
         if (
-          player.position.Y + player.playerHeight + speed <
-          canvas.height - PLAYER_MARGINY
+            player.position.Y + player.height + speed <
+            canvas.height - PLAYER_MARGINY
         )
           player.position.Y += speed;
         else if (
-          player.position.Y + player.playerHeight <
-          canvas.height - PLAYER_MARGINY
+            player.position.Y + player.height <
+            canvas.height - PLAYER_MARGINY
         )
           player.position.Y += 1;
-      } else if (player.position.Y > player.playerTargetY) {
+      } else if (player.position.Y > player.target) {
         if (player.position.Y - speed > PLAYER_MARGINY)
           player.position.Y -= speed;
         else if (player.position.Y > PLAYER_MARGINY) player.position.Y -= 1;
@@ -261,151 +206,144 @@ export default function Game() {
     };
 
     const drawPlayer = (player: Player) => {
-      ctx.fillStyle = player.playerColor;
+      ctx.fillStyle = player.color;
       ctx.fillRect(
-        player.position.X,
-        player.position.Y,
-        player.playerWidth,
-        player.playerHeight
+          player.position.X,
+          player.position.Y,
+          player.width,
+          player.height
       );
     };
 
+    /*function playBallSound(): void {
+      const audio = new Audio("/assets/ballBounce.mp3");
+      audio.play();
+    }
+
+    function scoreSound(): void {
+      const audio = new Audio("/assets/score.mp3");
+      audio.play();
+    }*/
+
+    /*
+    socket.on("movePlayer", (data: any) => {
+
+      //console.log(data);
+    });
+
+    */
     const drawBall = () => {
       ctx.beginPath();
-      ctx.arc(
-        ball.position.X,
-        ball.position.Y,
-        ball.ballRadius,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(ball.position.X, ball.position.Y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = "#00BFFF";
       ctx.fill();
       ctx.closePath();
     };
 
     const moveBall = () => {
-      ball.position.X += ball.ballSpeed.X;
-      ball.position.Y += ball.ballSpeed.Y;
+      const ballRadius = ball.radius / 2;
+      ball.position.X += ball.speed.X;
+      ball.position.Y += ball.speed.Y;
 
       const ballX =
-        ball.position.X + (ball.ballSpeed.X > 0 ? ballRadius : -ballRadius);
+          ball.position.X + (ball.speed.X > 0 ? ballRadius : -ballRadius);
       const ballY =
-        ball.position.Y + (ball.ballSpeed.Y > 0 ? ballRadius : -ballRadius);
+          ball.position.Y + (ball.speed.Y > 0 ? ballRadius : -ballRadius);
 
       if (ballY > canvas.height || ballY < 0) {
-        ball.ballSpeed.Y = -ball.ballSpeed.Y;
-        console.log(ballX);
-        console.log(ballY);
+        ball.speed.Y = -ball.speed.Y;
       } else if (ballX > canvas.width || ballX < canvas.clientLeft) {
-        let target = ball.position.X + ball.ballRadius > canvas.width ? 0 : 1;
-        setScore(target, players[target].playerScore + 1);
+        let target = ball.position.X + ball.radius > canvas.width ? 0 : 1;
+        setScore(target, player.score + 1);
+        console.log("reset ball");
+        /*scoreSound();*/
         resetBall();
-      } else {
-        for (let i = 0; i < 2; i++) {
-          if (
-            ballX >= players[i].position.X &&
-            ballX <= players[i].position.X + players[i].playerWidth &&
-            ballY >= players[i].position.Y &&
-            ballY <= players[i].position.Y + players[i].playerHeight
-          ) {
-            console.log(ballX);
-            console.log(ballY);
-            ball.ballSpeed.X = -ball.ballSpeed.X;
-            ball.ballSpeed.X = Math.min(
-              Math.max(ball.ballSpeed.X * 1.1, -12),
-              12
-            );
-          }
-        }
+      } else if (
+          ballX >= player.position.X &&
+          ballX <= player.position.X + player.width &&
+          ballY >= player.position.Y &&
+          ballY <= player.position.Y + player.height
+      ) {
+        ball.speed.X = -ball.speed.X;
+        /*playBallSound(); Hocam ses ekledik sanırım hataların var düzelttiğin zaman 213, 221, 252 ve bu satırları açarsan oyun kısmnda küçük bir sürpriz ile karşılaşacaksınız. - SAYGILAR OYUN DEPARTMANI */
+        ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
       }
     };
 
-    const resetBall = () => {
+    const resetBall = async () => {
       ball.position.X = canvas.width / 2;
       ball.position.Y = canvas.height / 2;
 
       let rnd = Math.random();
       if (rnd > 0.5) {
-        ball.ballSpeed.X = canvas.width * 0.002;
+        ball.speed.X = canvas.width * 0.002;
       } else {
-        ball.ballSpeed.X = canvas.width * -0.002;
+        ball.speed.X = canvas.width * -0.002;
       }
     };
 
     const setScore = (target: number, value: number) => {
-      players[target].playerScore = value;
+      player.score = value;
 
       if (target == 0) setScore1((score) => score + 1);
       else setScore2((score) => score + 1);
     };
 
-    ballRadius = ball.ballRadius / 2;
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("resize", onResize);
-    requestAnimationFrame(gameLoop);
-
-    // setInterval(() => {
-    //   socket.emit("movePlayer", players[0]);
-
-    //   socket.send("movePlayer", "deneme");
-    // }, 1000);
-
+    //gerekliymiş
+    //requestAnimationFrame(gameLoop);
     setInterval(() => {
+      gameLoop();
+    }, 30);
+
+
+
+    //Todo: Süreyi hesaplayacak kütüphane kullan
+    timer = setInterval(() => {
       const time = Date.now() / 1000;
       const min = Math.floor((time - gameTime) / 60);
       const sec = Math.floor(time - (gameTime + min * 60));
       setTimeInfo(
-        min.toString().padStart(2, "0") + ":" + sec.toString().padStart(2, "0")
+          min.toString().padStart(2, "0") + ":" + sec.toString().padStart(2, "0")
       );
-    }, 1000);
+    });
 
-   // socket.on("connect", () => {
-    //  console.log("connected");
-   // });
+
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("resize", onResize);
 
     return () => {
       clearInterval(timer);
-     // socket.disconnect();
-      //socket.close();
+      socket.disconnect();
+      socket.close();
     };
   }, []);
 
   return (
-    <>
       <div className={styles.container}>
         <div className={styles.scoreboard} ref={scoreboardRef}>
           <div className={styles.playerScore}>
-            <img
-              src={
-                "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-              }
-              className={styles.avatar}
-            ></img>
+            <img src={user?.avatar || ""} className={styles.avatar} />
             <div className={styles.playerInfo}>
-              <span className={styles.username}>İlknur Yarıkan</span>
+              <span className={styles.username}>{user?.full_name}</span>
               <span className={styles.score}>{score1}</span>
             </div>
           </div>
+
           <div className={styles.timer}>{timeInfo}</div>
+
           <div className={styles.playerScore}>
             <div className={styles.playerInfo}>
               <span className={styles.score}>{score2}</span>
-              <span className={styles.username}>İlknur Yarıkan</span>
+              <span className={styles.username}>{rival?.full_name}</span>
             </div>
-            <img
-              src={
-                "https://www.shareicon.net/data/512x512/2016/09/15/829452_user_512x512.png"
-              }
-              className={styles.avatar}
-            ></img>
+            <img src={rival?.avatar || ""} className={styles.avatar} />
           </div>
         </div>
         <div className={styles.game}>
           <canvas className={styles.canvas} ref={canvasRef}></canvas>
         </div>
       </div>
-    </>
   );
 }
