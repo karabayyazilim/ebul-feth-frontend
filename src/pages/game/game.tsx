@@ -34,6 +34,7 @@ export default function GamePage() {
 
     socket.current = gameSocket();
 
+    //Debug
     socket.current.on(Events.connect, () => {
       console.log("connect");
     });

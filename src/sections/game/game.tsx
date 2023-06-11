@@ -1,31 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
-import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
-
-interface Vector2d {
-  X: number;
-  Y: number;
-}
+import Player from "@/pages/game/entities/player.entity";
+import Ball from "@/pages/game/entities/ball.entity";
 
 interface IGameProps {
   rival: IUser;
   socket: any;
-}
-
-interface Player {
-  width: number;
-  speed: number;
-  score: number;
-  color: string;
-  height: number;
-  target: number;
-  position: Vector2d;
-}
-interface Ball {
-  radius: number;
-  speed: Vector2d;
-  position: Vector2d;
 }
 
 const PLAYER_MARGINY = 5;
@@ -42,6 +23,7 @@ export default function Game({ rival, socket }: IGameProps) {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
+
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -68,28 +50,48 @@ export default function Game({ rival, socket }: IGameProps) {
       radius: canvas.width * 0.01,
     };
 
-    const player: Player = {
-      width: canvas.width * PLAYER_WIDTH_SCALE,
-      height: canvas.height * PLAYER_HEIGTH_SCALE,
-      position: {
-        X: PLAYER_MARGINX,
-        Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-      },
-      target: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
-      speed: PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-      color: "blue",
-      score: 0,
+    let player = new Player(
+        canvas.width * PLAYER_WIDTH_SCALE,
+        canvas.height * PLAYER_HEIGTH_SCALE,
+        {
+                  X: PLAYER_MARGINX,
+                  Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
+                },
+        canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
+        PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
+        "blue",
+        0
+    );
+
+    const onResize = (event: Event) => {
+      const oldHeight = canvas.height;
+
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      const scale = player.position.Y  * 100 / oldHeight;
+
+      player.height = canvas.height * PLAYER_HEIGTH_SCALE;
+      player.width = canvas.width * PLAYER_WIDTH_SCALE;
+      player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025)
+      player.position.Y = scale * canvas.height / 100;
+      player.target = player.position.Y;
+
+      ball.radius = canvas.width * 0.01;
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key == 'w') {
-        player.speed += 0.5;
-        player.target += player.position.Y + player.speed;
-        //socket.emit("server:movePlayer", player.position);
+        player.moveUp();
       } else if (e.key == 's') {
-        player.speed += 0.5;
-        player.target = player.position.Y + player.speed;
-        //socket.emit("server:movePlayer", player.position);
+        player.moveDown();
+      }
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "w" || e.key === "s") {
+        player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
+        player.target = player.position.Y;
+        player.key = 0;
       }
     };
 
@@ -97,51 +99,21 @@ export default function Game({ rival, socket }: IGameProps) {
       socket.emit("server:movePlayer", player.position);
     },50);
 
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "w" || e.key === "s") {
-        player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
-        player.target = player.position.Y;
-      }
-    };
-
-    const onResize = (event: Event) => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      //Calculate player & ball pos
-    };
-
-
-    /*
-    const calculatePlayerA = async () => {
-      setTimeout(() => {
-        if (keyPressed["s"]) {
-          player.speed += 0.1;
-          player.target += player.position.Y + player.speed;
-        } else if (keyPressed["w"]) {
-          player.speed += 0.1;
-          player.target -= player.position.Y + player.speed;
-        }
-      });
-    };
-
-    */
-
-    const gameLoop = () => {
+    const gameLoop = async () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBall();
-      //moveBall();
+      moveBall();
 
-      //calculatePlayerA();
-
+      player.move();
       movePlayer(player);
       drawPlayer(player);
 
-      requestAnimationFrame(gameLoop);
+      //requestAnimationFrame(gameLoop);
     };
 
 
-    const movePlayer = (player: Player) => {
+    const movePlayer = async (player: Player) => {
       const speed = player.speed;
       if (player.position.Y < player.target) {
         if (
@@ -180,11 +152,6 @@ export default function Game({ rival, socket }: IGameProps) {
       const audio = new Audio("/assets/score.mp3");
       audio.play();
     }*/
-
-    socket.on("movePlayer", (data: any) => {
-
-      //console.log(data);
-    });
 
 
     const drawBall = () => {
@@ -258,7 +225,7 @@ export default function Game({ rival, socket }: IGameProps) {
       );
     });
 
-
+    setInterval(gameLoop, 30);
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);

@@ -120,15 +120,13 @@ export default function Game({ rival, socket }: IGameProps) {
 
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
+      const scale = player.position.Y  * 100 / oldHeight;
 
       player.height = canvas.height * PLAYER_HEIGTH_SCALE;
       player.width = canvas.width * PLAYER_WIDTH_SCALE;
       player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025)
-      const scale = player.position.Y  * 100 / oldHeight;
-     // console.log(oldHeight, canvas.offsetHeight);
       player.position.Y = scale * canvas.height / 100;
       player.target = player.position.Y;
-      //Calculate player & ball pos
 
       ball.radius = canvas.width * 0.01;
     };
@@ -146,7 +144,6 @@ export default function Game({ rival, socket }: IGameProps) {
         }
       });
     };
-
 
 
     var preterit = setInterval(() => {
