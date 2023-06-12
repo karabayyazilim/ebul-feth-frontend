@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
+import {RxExit} from "react-icons/rx";
+import Link from "next/link";
 
 
 
@@ -340,6 +342,10 @@ export default function Game({ rival, socket }: IGameProps) {
         </div>
         <div className={styles.game}>
           <canvas className={styles.canvas} ref={canvasRef}></canvas>
+        </div>
+        <div className={styles.footer}>
+          Exit
+          <Link href={"/"}><RxExit/></Link>
         </div>
       </div>
   );

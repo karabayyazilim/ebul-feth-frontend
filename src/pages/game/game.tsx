@@ -6,9 +6,6 @@ import Game from "@/sections/game/game";
 import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
 
-GamePage.getLayout = (page: ReactNode) => (
-  <DashboardLayout>{page}</DashboardLayout>
-);
 
 enum Events {
   connect = "connect",

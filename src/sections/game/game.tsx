@@ -1,13 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
+import {RxExit} from "react-icons/rx";
 import { useAuthContext } from "@/auth/AuthContext";
 import Player from "@/pages/game/entities/player.entity";
 import Ball from "@/pages/game/entities/ball.entity";
+import Link from "next/link";
+
 
 interface IGameProps {
   rival: IUser;
   socket: any;
 }
+
+enum Song {
+  Hit,
+  Score,
+  Win,
+  Start,
+  Lose
+}
+
+const audioSources: string[] = [
+  "/assets/ballBounce.mp3",
+  "/assets/score.mp3",
+  "/assets/endWin.mp3",
+  "/assets/pongStart.mp3",
+  "/assets/gameOver.mp3",
+
+];
+
 
 const PLAYER_MARGINY = 5;
 const PLAYER_MARGINX = 10;
@@ -23,7 +44,8 @@ export default function Game({ rival, socket }: IGameProps) {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
-
+  let countDown = 3;
+  let gameState : boolean = false;
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -59,9 +81,13 @@ export default function Game({ rival, socket }: IGameProps) {
                 },
         canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-        "blue",
+        "lightpink",
         0
     );
+
+    let sing: any = [];
+    for(let i = 0; i < 5; i++)
+      sing[i] = new Audio(audioSources[i]);
 
     const onResize = (event: Event) => {
       const oldHeight = canvas.height;
@@ -103,13 +129,17 @@ export default function Game({ rival, socket }: IGameProps) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBall();
-      moveBall();
-
-      player.move();
-      movePlayer(player);
       drawPlayer(player);
 
-      //requestAnimationFrame(gameLoop);
+      if(!gameState) {
+        drawText();
+        return;
+      }
+
+      moveBall();
+      player.move();
+      movePlayer(player);
+
     };
 
 
@@ -143,16 +173,9 @@ export default function Game({ rival, socket }: IGameProps) {
       );
     };
 
-    /*function playBallSound(): void {
-      const audio = new Audio("/assets/ballBounce.mp3");
-      audio.play();
+    const playSound = async (index : number) => {
+      sing[index].play();
     }
-
-    function scoreSound(): void {
-      const audio = new Audio("/assets/score.mp3");
-      audio.play();
-    }*/
-
 
     const drawBall = () => {
       ctx.beginPath();
@@ -167,29 +190,20 @@ export default function Game({ rival, socket }: IGameProps) {
       ball.position.X += ball.speed.X;
       ball.position.Y += ball.speed.Y;
 
-      const ballX =
-        ball.position.X + (ball.speed.X > 0 ? ballRadius : -ballRadius);
-      const ballY =
-        ball.position.Y + (ball.speed.Y > 0 ? ballRadius : -ballRadius);
+      const ballX = ball.position.X + (ball.speed.X > 0 ? ballRadius : -ballRadius);
+      const ballY = ball.position.Y + (ball.speed.Y > 0 ? ballRadius : -ballRadius);
 
-      if (ballY > canvas.height || ballY < 0) {
-        ball.speed.Y = -ball.speed.Y;
-      } else if (ballX > canvas.width || ballX < canvas.clientLeft) {
+      if (ballY > canvas.height || ballY < 0)
+        onBallOut();
+      else if (ballX > canvas.width || ballX < canvas.clientLeft)
+      {
         let target = ball.position.X + ball.radius > canvas.width ? 0 : 1;
         setScore(target, player.score + 1);
         console.log("reset ball");
-        /*scoreSound();*/
         resetBall();
-      } else if (
-        ballX >= player.position.X &&
-        ballX <= player.position.X + player.width &&
-        ballY >= player.position.Y &&
-        ballY <= player.position.Y + player.height
-      ) {
-        ball.speed.X = -ball.speed.X;
-        /*playBallSound(); Hocam ses ekledik sanırım hataların var düzelttiğin zaman 213, 221, 252 ve bu satırları açarsan oyun kısmnda küçük bir sürpriz ile karşılaşacaksınız. - SAYGILAR OYUN DEPARTMANI */
-        ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
       }
+      else if (ballX >= player.position.X && ballX <= player.position.X + player.width && ballY >= player.position.Y && ballY <= player.position.Y + player.height)
+        onBallHitPlayer()
     };
 
     const resetBall = () => {
@@ -202,7 +216,24 @@ export default function Game({ rival, socket }: IGameProps) {
       } else {
         ball.speed.X = canvas.width * -0.002;
       }
+      playSound(Song.Score);
     };
+
+    const onBallOut = () => {
+      ball.speed.Y = -ball.speed.Y;
+    }
+
+    const onBallHitPlayer = () => {
+      ball.speed.X = -ball.speed.X;
+      ball.speed.X = Math.min(Math.max(ball.speed.X * 1.1, -12), 12);
+      playSound(Song.Hit);
+    }
+    const drawText = () => {
+      ctx.font =   canvas.width * 0.10 + 'px Arial';
+      ctx.fillStyle = 'green';
+      ctx.textAlign = 'center';
+      ctx.fillText(countDown > 0 ? countDown.toString() : "F İ G H T  !", canvas.width / 2, canvas.height / 2);
+    }
 
     const setScore = (target: number, value: number) => {
       player.score = value;
@@ -211,6 +242,16 @@ export default function Game({ rival, socket }: IGameProps) {
       else setScore2((score) => score + 1);
     };
 
+    const startGame = ()  => {
+      playSound(Song.Start);
+      const backTime = setInterval(() => {
+        if(countDown == 0) {
+          gameState = true;
+          clearInterval(backTime);
+        }
+        countDown--;
+      }, 1000);
+    }
     //?
     //requestAnimationFrame(gameLoop);
 
@@ -225,6 +266,8 @@ export default function Game({ rival, socket }: IGameProps) {
       );
     });
 
+
+    startGame();
     setInterval(gameLoop, 30);
 
     window.addEventListener("keydown", onKeyDown);
@@ -239,30 +282,32 @@ export default function Game({ rival, socket }: IGameProps) {
   }, []);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.scoreboard} ref={scoreboardRef}>
-        <div className={styles.playerScore}>
-          <img src={user?.avatar || ""} className={styles.avatar} />
-          <div className={styles.playerInfo}>
-            <span className={styles.username}>{user?.full_name}</span>
-            <span className={styles.score}>{score1}</span>
+      <div className={styles.container}>
+        <div className={styles.scoreboard} ref={scoreboardRef}>
+          <div className={styles.playerScore}>
+            <img src={user?.avatar || ""} className={styles.avatar} />
+            <div className={styles.playerInfo}>
+              <span className={styles.username}>{user?.full_name}</span>
+              <span className={styles.score}>{score1}</span>
+            </div>
+          </div>
+          <div className={styles.timer}>{timeInfo}</div>
+          <div className={styles.playerScore}>
+            <div className={styles.playerInfo}>
+              <span className={styles.score}>{score2}</span>
+              <span className={styles.username}>{rival?.full_name}</span>
+            </div>
+            <img src={rival?.avatar || ""} className={styles.avatar} />
           </div>
         </div>
-
-        <div className={styles.timer}>{timeInfo}</div>
-
-        <div className={styles.playerScore}>
-          <div className={styles.playerInfo}>
-            <span className={styles.score}>{score2}</span>
-            <span className={styles.username}>{rival.full_name}</span>
-          </div>
-          <img src={rival.avatar || ""} className={styles.avatar} />
+        <div className={styles.game}>
+          <canvas className={styles.canvas} ref={canvasRef}></canvas>
+        </div>
+        <div className={styles.footer}>
+          Exit
+          <Link href={"/"}><RxExit/></Link>
         </div>
       </div>
-      <div className={styles.game}>
-        <div className={styles.countDown}>5</div>
-        <canvas className={styles.canvas} ref={canvasRef}></canvas>
-      </div>
-    </div>
   );
 }
+
