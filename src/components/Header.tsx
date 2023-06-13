@@ -38,7 +38,7 @@ export default function Header() {
             </li>
           </ul>
 
-          <div className="dropdown dropdown-end ">
+          <div className="dropdown dropdown-end z-40 ">
             <label
               tabIndex={0}
               className="btn btn-ghost btn-circle avatar placeholder"

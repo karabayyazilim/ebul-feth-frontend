@@ -5,12 +5,13 @@ import toast from "react-hot-toast";
 
 const categories = ['public', 'protected', 'private'];
 
-export default function ChannelSettingModal({friends, channelId}: any) {
+export default function ChannelSettingModal({friends, channelId, profile}: any) {
 
 	const [channelCategory, setChannelCategory] = useState<string>('');
 	const [channelPassword, setChannelPassword] = useState<string>('');
 	const [channelNonMembers, setChannelNonMembers] = useState<any[]>([]);
 	const [channelMembers, setChannelMembers] = useState<any[]>([]);
+	const [me, setMe] = useState<any>({});
 	const [activeTab, setActiveTab] = useState('members');
 
 	const handleChangeChannelCategory = (e: any) => {
@@ -32,11 +33,40 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 		});
 	}
 
+
+	const handleMemberMuted = (userId: number) => {
+		axios.put('/channel/member/' + channelId, {is_muted: true}, {
+			params: {
+				userId
+			},
+		}).then(() => {
+			toast.success("Member muted!");
+			getChannelNonMembers();
+			getChannelMembers();
+		}).catch(() => {
+			toast.error("An error occurred!");
+		});
+	}
+
 	const handleAddMember = (userId: number) => {
 		axios.post('/channel/add-member/' + channelId, {
 			userId
 		}).then(() => {
 			toast.success("Member added!");
+			getChannelNonMembers();
+			getChannelMembers();
+		}).catch(() => {
+			toast.error("An error occurred!");
+		});
+	}
+
+	const handleMemberBanned = (userId: number) => {
+		axios.put('/channel/member/' + channelId, {is_banned: true},{
+			params: {
+				userId
+			}
+		}).then(() => {
+			toast.success("Member banned!");
 			getChannelNonMembers();
 			getChannelMembers();
 		}).catch(() => {
@@ -74,10 +104,21 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 		});
 	}
 
+	const getMe = () => {
+		axios.get('/channel/member/' + channelId, {
+			params: {
+				userId: profile?.id,
+			}
+		}).then((res) => {
+			setMe(res.data);
+		});
+	}
+
 	useEffect(() => {
 		getChannel();
 		getChannelMembers();
 		getChannelNonMembers();
+		getMe();
 	}, [friends, channelId]);
 
 	return (
@@ -89,27 +130,29 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 					<h3 className="font-bold text-lg">Channel Setting</h3>
 					<div className="divider"></div>
 					<div className="w-9/12 mx-auto">
-						<div className="w-full">
-							<div className="form-control">
-								<label className="label">Channel Category</label>
-								<div className="input-group w-full">
-									<select className="select select-bordered w-full" value={channelCategory}
-											onChange={handleChangeChannelCategory}>
-										{categories.map((category, index) => (
-											<option key={index} value={category}>{category}</option>
-										))}
-									</select>
-									<button className="btn" onClick={handleOnSubmitChannelCategory}>Submit</button>
-								</div>
-							</div>
-							{channelCategory === 'protected' && (
+						{me?.is_owner && (
+							<div className="w-full">
 								<div className="form-control">
-									<label className="label">Password</label>
-									<input type="password" className="input bg-neutral"
-										   onChange={handleChangeChannelPassword}/>
+									<label className="label">Channel Category</label>
+									<div className="input-group w-full">
+										<select className="select select-bordered w-full" value={channelCategory}
+												onChange={handleChangeChannelCategory}>
+											{categories.map((category, index) => (
+												<option key={index} value={category}>{category}</option>
+											))}
+										</select>
+										<button className="btn" onClick={handleOnSubmitChannelCategory}>Submit</button>
+									</div>
 								</div>
-							)}
-						</div>
+								{channelCategory === 'protected' && (
+									<div className="form-control">
+										<label className="label">Password</label>
+										<input type="password" className="input bg-neutral"
+											   onChange={handleChangeChannelPassword}/>
+									</div>
+								)}
+							</div>
+						)}
 
 						<div className="divider"></div>
 						<div className="w-full bg-neutral p-6 rounded-lg">
@@ -144,20 +187,31 @@ export default function ChannelSettingModal({friends, channelId}: any) {
 													</span>
 												</div>
 											</div>
-											{/* {(channelMember.is_owner || channelMember.is_admin) && ( */}
-											<div className="dropdown dropdown-end">
-												<label tabIndex={0} className="btn">
-													<AdjustmentsHorizontalIcon className="w-4"/>
-												</label>
-												<ul tabIndex={0}
-													className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-													<li><a onClick={() => handleAssignAdmin(channelMember.user.id)}>Assign
-														Admin</a></li>
-													<li><a>Banned</a></li>
-													<li><a>Mute</a></li>
-												</ul>
-											</div>
-											{/* )} */}
+											{(me.is_owner || me.is_admin) && (
+												<div className="dropdown dropdown-end">
+													{!channelMember.is_owner && (
+														<>
+															<label tabIndex={0} className="btn">
+																<AdjustmentsHorizontalIcon className="w-4"/>
+															</label>
+															<ul tabIndex={0}
+																className="dropdown-content menu p-2 shadow bg-base-100 rounded-box z-40 w-52">
+																{me?.is_owner && (
+																	<li><a
+																		onClick={() => handleAssignAdmin(channelMember.user.id)}>Assign
+																		Admin</a></li>
+																)}
+																{((me?.is_owner || me?.is_admin) && !channelMember.is_owner) && (
+																	<>
+																		<li><a onClick={() => handleMemberBanned(channelMember.user.id)}>Banned</a></li>
+																		<li><a onClick={() => handleMemberMuted(channelMember.user.id)}>Mute</a></li>
+																	</>
+																)}
+															</ul>
+														</>
+													)}
+												</div>
+											)}
 										</div>
 									</li>
 								))

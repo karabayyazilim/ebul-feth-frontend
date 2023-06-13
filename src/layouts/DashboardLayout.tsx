@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div>
       <Header />
-      <div className="container mx-auto">{children}</div>
+      <div className="container p-5 mx-auto">{children}</div>
     </div>
   );
 }

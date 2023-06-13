@@ -34,6 +34,7 @@ export default function Chat() {
 	const [friends, setFriends] = useState<any[]>([]);
 	const [selectedFriend, setSelectedFriend] = useState<any>({});
 	const [channels, setChannels] = useState<any[]>([]);
+	const [channel, setChannel] = useState<any>({});
 	const [selectedChannel, setSelectedChannel] = useState<number>(0);
 	const chatRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +64,11 @@ export default function Chat() {
 					message: e.target.value,
 				}
 
-				socket.current.emit('channel-message', message);
+				if (channel.is_muted) {
+					toast.error("You are muted!");
+				} else {
+					socket.current.emit('channel-message', message);
+				}
 			}
 			e.target.value = '';
 		}
@@ -124,6 +129,16 @@ export default function Chat() {
 		});
 	}
 
+	const getChannel = (userId: number) => {
+		axios.get('/channel/member/' + selectedChannel, {
+			params: {
+				userId
+			}
+		}).then((res) => {
+			setChannel(res.data);
+		});
+	}
+
 	const scrollToBottom = () => {
 		if (chatRef.current) {
 			chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -175,9 +190,16 @@ export default function Chat() {
 		scrollToBottom();
 	}, [directMessages, channelsMessages]);
 
+	useEffect(() => {
+		if (profile.id) {
+			getChannel(profile?.id);
+		}
+	}, [profile, selectedChannel]);
+
+
 	return (
 		<>
-			<div className="flex md:flex-row flex-col gap-5 md:h-[calc(100vh-80px)] h-screen">
+			<div className="flex md:flex-row flex-col gap-5 md:h-[calc(100vh-120px)] h-screen">
 				<div
 					className="flex flex-col md:w-3/12 md:h-full h-1/2 w-full items-center justify-center bg-neutral rounded-2xl border border-solid border-primary">
 					<div className="flex w-full p-2 gap-x-2">
@@ -222,8 +244,10 @@ export default function Chat() {
 												<AdjustmentsHorizontalIcon className="w-4"/>
 											</label>
 											<ul tabIndex={0}
-												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-												<li><button onClick={() => handleBanFriend(friend.id)}>Banned</button></li>
+												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box z-40 w-52">
+												<li>
+													<button onClick={() => handleBanFriend(friend.id)}>Banned</button>
+												</li>
 											</ul>
 										</div>
 									</div>
@@ -245,15 +269,17 @@ export default function Chat() {
 												<AdjustmentsHorizontalIcon className="w-4"/>
 											</label>
 											<ul tabIndex={0}
-												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box z-40  w-52">
 												<li>
 													{(channel.is_owner || channel.is_admin) && (
 														<label htmlFor="openModal">Setting</label>
 													)}
 													{channel.is_owner && (
-														<label onClick={() => handleDeleteChannel(channel.channel.id)}>Delete</label>
+														<label
+															onClick={() => handleDeleteChannel(channel.channel.id)}>Delete</label>
 													)}
-													<label onClick={() => handleLeaveChannel(channel.channel.id)}>Leave</label>
+													<label
+														onClick={() => handleLeaveChannel(channel.channel.id)}>Leave</label>
 												</li>
 											</ul>
 										</div>
@@ -329,16 +355,21 @@ export default function Chat() {
 						</div>
 						<div className="card-footer">
 							<div className="form-control">
-								<input type="text" disabled={!selectedChannel}
-									   onKeyPress={enterKeyPress} placeholder="Type here"
-									   className="mt-10 input w-full input-primary"/>
+								<input
+									type="text"
+									disabled={!selectedChannel}
+									onKeyPress={enterKeyPress}
+									placeholder="Type here"
+									className="mt-10 input w-full input-primary"
+								/>
 							</div>
 						</div>
 					</div>
 				)}
 			</div>
 
-			{selectedChannel !== 0 && <ChannelSettingModal channelId={selectedChannel} friends={friends}/>}
+			{selectedChannel !== 0 &&
+				<ChannelSettingModal channelId={selectedChannel} friends={friends} profile={profile}/>}
 			<CreateChannelModal/>
 			<AddFriendModal/>
 		</>
