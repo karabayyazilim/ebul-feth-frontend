@@ -36,6 +36,9 @@ const PLAYER_MOVE_SPEED = 5;
 const PLAYER_WIDTH_SCALE = 0.01;
 const PLAYER_HEIGTH_SCALE = 0.25;
 
+const SERVER_CANVAS_X = 1920;
+const SERVER_CANVAS_Y = 1080;
+
 export default function Game({ rival, socket }: IGameProps) {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -46,6 +49,8 @@ export default function Game({ rival, socket }: IGameProps) {
   const [timeInfo, setTimeInfo] = useState("");
   let countDown = 3;
   let gameState : boolean = false;
+
+  let screenScale : Vector2d;
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -81,8 +86,7 @@ export default function Game({ rival, socket }: IGameProps) {
                 },
         canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-        "lightpink",
-        0
+        "lightpink"
     );
 
     let rival = new Player(
@@ -94,8 +98,7 @@ export default function Game({ rival, socket }: IGameProps) {
         },
         canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
-        "blue",
-        0
+        "blue"
     );
 
     let sing: any = [];
@@ -103,12 +106,27 @@ export default function Game({ rival, socket }: IGameProps) {
       sing[i] = new Audio(audioSources[i]);
 
     const calculateScreen = (screenPos : Vector2d) : Vector2d => {
+      //Todo: fix
       const playerScale : Vector2d = {
         X: 0,
         Y: canvas.height * screenPos.Y / 100,
       };
-      console.log(screenPos);
       return playerScale;
+    }
+
+    const calculateBall = (ballPos : Vector2d) : Vector2d => {
+      const ret : Vector2d = {
+        X: ballPos.X / screenScale.X,
+        Y: ballPos.Y / screenScale.Y,
+      }
+      return ret;
+    }
+
+    const calculateScale = () : Vector2d => {
+      return {
+        X: SERVER_CANVAS_X / canvas.width,
+        Y: SERVER_CANVAS_Y / canvas.height,
+      }
     }
 
     const onResize = (event: Event) => {
@@ -130,6 +148,8 @@ export default function Game({ rival, socket }: IGameProps) {
       rival.position.Y = scale * canvas.height / 100;
 
       ball.radius = canvas.width * 0.01;
+
+      screenScale = calculateScale();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -149,6 +169,7 @@ export default function Game({ rival, socket }: IGameProps) {
     };
 
     const updatePlayer = async () => {
+      //Todo: fix
       const pos : Vector2d = {
         X: 0,
         Y: player.position.Y * 100 / canvas.height,
@@ -157,10 +178,8 @@ export default function Game({ rival, socket }: IGameProps) {
     }
 
     socket.on(Events.game, (data : any) => {
-        //console.log(data);
-        //Todo: fix backend posX
+        //Todo: fix
         const res = calculateScreen(data);
-        //console.log(res);
         rival.position.Y = res.Y;
     });
 

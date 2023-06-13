@@ -14,15 +14,15 @@ export default class Player {
     constructor(
         width: number, height : number,
         position : any, target : number,
-        speed: number, color: string,
-        score: number, key?: number) {
+        speed: number, color: string) {
         this.width = width;
         this.height = height;
         this.position = position;
         this.target = target;
         this.speed = speed;
         this.color = color;
-        this.score = score;
+        this.score = 0;
+        this.key = 0;
     }
 
     moveDown() {
