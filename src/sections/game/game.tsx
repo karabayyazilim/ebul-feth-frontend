@@ -5,6 +5,8 @@ import { useAuthContext } from "@/auth/AuthContext";
 import Player from "@/pages/game/entities/player.entity";
 import Ball from "@/pages/game/entities/ball.entity";
 import Link from "next/link";
+import {Events} from "@/pages/game/game";
+import Vector2d from "@/pages/game/entities/vector2d.entity";
 
 
 interface IGameProps {
@@ -26,9 +28,7 @@ const audioSources: string[] = [
   "/assets/endWin.mp3",
   "/assets/pongStart.mp3",
   "/assets/gameOver.mp3",
-
 ];
-
 
 const PLAYER_MARGINY = 5;
 const PLAYER_MARGINX = 10;
@@ -85,9 +85,31 @@ export default function Game({ rival, socket }: IGameProps) {
         0
     );
 
+    let rival = new Player(
+        canvas.width * PLAYER_WIDTH_SCALE,
+        canvas.height * PLAYER_HEIGTH_SCALE,
+        {
+          X: canvas.width - PLAYER_MARGINX - player.width,
+          Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
+        },
+        canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
+        PLAYER_MOVE_SPEED * (canvas.height * 0.0025),
+        "blue",
+        0
+    );
+
     let sing: any = [];
     for(let i = 0; i < 5; i++)
       sing[i] = new Audio(audioSources[i]);
+
+    const calculateScreen = (screenPos : Vector2d) : Vector2d => {
+      const playerScale : Vector2d = {
+        X: 0,
+        Y: canvas.height * screenPos.Y / 100,
+      };
+      console.log(screenPos);
+      return playerScale;
+    }
 
     const onResize = (event: Event) => {
       const oldHeight = canvas.height;
@@ -101,6 +123,11 @@ export default function Game({ rival, socket }: IGameProps) {
       player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025)
       player.position.Y = scale * canvas.height / 100;
       player.target = player.position.Y;
+
+
+      rival.height = canvas.height * PLAYER_HEIGTH_SCALE;
+      rival.width = canvas.width * PLAYER_WIDTH_SCALE;
+      rival.position.Y = scale * canvas.height / 100;
 
       ball.radius = canvas.width * 0.01;
     };
@@ -121,15 +148,28 @@ export default function Game({ rival, socket }: IGameProps) {
       }
     };
 
-    setInterval(() => {
-      socket.emit("server:movePlayer", player.position);
-    },50);
+    const updatePlayer = async () => {
+      const pos : Vector2d = {
+        X: 0,
+        Y: player.position.Y * 100 / canvas.height,
+      }
+      socket.emit(Events.update, pos);
+    }
+
+    socket.on(Events.game, (data : any) => {
+        //console.log(data);
+        //Todo: fix backend posX
+        const res = calculateScreen(data);
+        //console.log(res);
+        rival.position.Y = res.Y;
+    });
 
     const gameLoop = async () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBall();
       drawPlayer(player);
+      drawRival();
 
       if(!gameState) {
         drawText();
@@ -172,6 +212,16 @@ export default function Game({ rival, socket }: IGameProps) {
         player.height
       );
     };
+
+    const drawRival = () => {
+      ctx.fillStyle = "blue";
+      ctx.fillRect(
+          rival.position.X,
+          rival.position.Y,
+          rival.width,
+          rival.height,
+      );
+    }
 
     const playSound = async (index : number) => {
       sing[index].play();
@@ -269,6 +319,7 @@ export default function Game({ rival, socket }: IGameProps) {
 
     startGame();
     setInterval(gameLoop, 30);
+    setInterval(updatePlayer, 50);
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);

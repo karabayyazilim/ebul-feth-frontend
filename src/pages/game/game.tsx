@@ -7,12 +7,14 @@ import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
 
 
-enum Events {
+export enum Events {
   connect = "connect",
   disconnect = "disconnect",
-  start = "client:start",
+  start = "client:startGame",
   finish = "client:finish",
   match = "server:match",
+  update = "server:updatePlayer",
+  game = "client:updateGame",
 }
 
 export default function GamePage() {
