@@ -12,22 +12,25 @@ import Vector2d from "@/pages/game/entities/vector2d.entity";
 interface IGameProps {
   rival: IUser;
   socket: any;
+  gameOver : any;
 }
 
 enum Song {
   Hit,
-  Score,
+  ScoreWin,
+  ScoreLose,
   Win,
+  Lose,
   Start,
-  Lose
 }
 
 const audioSources: string[] = [
   "/assets/ballBounce.mp3",
-  "/assets/score.mp3",
+  "/assets/scoreWin.mp3",
+  "/assets/scoreLose.mp3",
   "/assets/endWin.mp3",
-  "/assets/pongStart.mp3",
   "/assets/gameOver.mp3",
+  "/assets/pongStart.mp3",
 ];
 
 const PLAYER_MARGINY = 5;
@@ -39,7 +42,7 @@ const PLAYER_HEIGTH_SCALE = 0.25;
 const SERVER_CANVAS_X = 1920;
 const SERVER_CANVAS_Y = 1080;
 
-export default function Game({ rival, socket }: IGameProps) {
+export default function Game({ rival, socket, gameOver }: IGameProps) {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
@@ -49,6 +52,8 @@ export default function Game({ rival, socket }: IGameProps) {
   const [timeInfo, setTimeInfo] = useState("");
   let countDown = 3;
   let gameState : boolean = false;
+
+  let playerTimer : NodeJS.Timer;
 
   let screenScale : Vector2d;
 
@@ -103,7 +108,7 @@ export default function Game({ rival, socket }: IGameProps) {
     );
 
     let sing: any = [];
-    for(let i = 0; i < 5; i++)
+    for(let i = 0; i < 6; i++)
       sing[i] = new Audio(audioSources[i]);
 
     const calculateScreen = (screenPos : Vector2d) : Vector2d => {
@@ -201,6 +206,21 @@ export default function Game({ rival, socket }: IGameProps) {
 
     socket.on(Events.sound, (data : any) => {
       playSound(data);
+    });
+
+    socket.on(Events.finish, (data : any) => {
+      console.log("finish");
+      clearInterval(playerTimer);
+      if(data[0] == data[1])
+        gameOver({state: true, score: data[0], message: "Rakibin korktu!"});
+      else if(data[0] > data[1]) {
+        gameOver({state: true, score: data[0], message: "You Win!"});
+        playSound(Song.Win);
+      }
+      else {
+        gameOver({state: true, score: data[0], message: "You Lose!"});
+        playSound(Song.Lose);
+      }
     })
 
     let hitTime = Date.now();
@@ -210,6 +230,7 @@ export default function Game({ rival, socket }: IGameProps) {
         console.log("Hit");
         hitTime = Date.now() + 1000;
         socket.emit(Events.hit);
+        playSound(Song.Hit);
       }
     }
 
@@ -220,10 +241,10 @@ export default function Game({ rival, socket }: IGameProps) {
       drawPlayer(player);
       drawRival();
 
-      //if(!gameState) {
-        //drawText();
-        //return;
-      //}
+      if(!gameState) {
+        drawText();
+        return;
+      }
 
       //moveBall();
       player.move();
@@ -284,40 +305,6 @@ export default function Game({ rival, socket }: IGameProps) {
       ctx.closePath();
     };
 
-    const moveBall = () => {
-      const ballRadius = ball.radius / 2;
-      ball.position.X += ball.speed.X;
-      ball.position.Y += ball.speed.Y;
-
-      const ballX = ball.position.X + (ball.speed.X > 0 ? ballRadius : -ballRadius);
-      const ballY = ball.position.Y + (ball.speed.Y > 0 ? ballRadius : -ballRadius);
-
-      if (ballY > canvas.height || ballY < 0)
-        onBallOut();
-      else if (ballX > canvas.width || ballX < canvas.clientLeft)
-      {
-        let target = ball.position.X + ball.radius > canvas.width ? 0 : 1;
-        setScore(target, player.score + 1);
-        console.log("reset ball");
-        resetBall();
-      }
-      else if (ballX >= player.position.X && ballX <= player.position.X + player.width && ballY >= player.position.Y && ballY <= player.position.Y + player.height)
-        onBallHitPlayer()
-    };
-
-    const resetBall = () => {
-      ball.position.X = canvas.width / 2;
-      ball.position.Y = canvas.height / 2;
-
-      let rnd = Math.random();
-      if (rnd > 0.5) {
-        ball.speed.X = canvas.width * 0.002;
-      } else {
-        ball.speed.X = canvas.width * -0.002;
-      }
-      playSound(Song.Score);
-    };
-
     const onBallOut = () => {
       ball.speed.Y = -ball.speed.Y;
     }
@@ -351,8 +338,6 @@ export default function Game({ rival, socket }: IGameProps) {
         countDown--;
       }, 1000);
     }
-    //?
-    //requestAnimationFrame(gameLoop);
 
 
     //Todo: Süreyi hesaplayacak kütüphane kullan
@@ -368,7 +353,7 @@ export default function Game({ rival, socket }: IGameProps) {
 
     startGame();
     setInterval(gameLoop, 30);
-    setInterval(updatePlayer, 50);
+    playerTimer = setInterval(updatePlayer, 50);
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);

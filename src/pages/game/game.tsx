@@ -11,7 +11,7 @@ export enum Events {
   connect = "connect",
   disconnect = "disconnect",
   start = "client:startGame",
-  finish = "client:finish",
+  finish = "client:finishGame",
   match = "server:match",
   update = "server:updatePlayer",
   game = "client:updateGame",
@@ -29,12 +29,24 @@ export default function GamePage() {
 
   const [gameOver, setGameOver] = useState(false);
 
+  const [score, setScore] = useState(0);
+
+  const [message, setMessage] = useState("");
+
   let socket: any = useRef<any>(null);
+
+  const finishGame = (val : any) => {
+    setScore(val.score);
+    setMessage(val.message);
+    setGameOver(val.state);
+  }
 
   useEffect(() => {
     if (!user) return;
 
     socket.current = gameSocket();
+
+
 
     //Debug
     socket.current.on(Events.connect, () => {
@@ -49,11 +61,13 @@ export default function GamePage() {
       setRival(rival);
     });
 
-
+    /*
     socket.current.on(Events.finish, () => {
       setPending(false);
       setGameOver(true);
     });
+     */
+
 
     socket.current.on(Events.disconnect, () => {
       setPending(false);
@@ -70,10 +84,10 @@ export default function GamePage() {
   }
 
   if (gameOver) {
-    return <FinishGame score={123} />;
+    return <FinishGame score={score} message={message} />;
   }
 
   if (rival) {
-    return <Game rival={rival} socket={socket.current} />;
+    return <Game rival={rival} socket={socket.current} gameOver={finishGame} />;
   }
 }
