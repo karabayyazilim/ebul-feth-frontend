@@ -15,6 +15,9 @@ export enum Events {
   match = "server:match",
   update = "server:updatePlayer",
   game = "client:updateGame",
+  score = "client:setScore",
+  sound = "client:playSound",
+  hit = "server:hit",
 }
 
 export default function GamePage() {

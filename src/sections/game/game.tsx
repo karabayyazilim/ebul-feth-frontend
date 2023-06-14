@@ -62,6 +62,7 @@ export default function Game({ rival, socket }: IGameProps) {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
+
     let timer: NodeJS.Timer;
     let gameTime: number = Date.now() / 1000;
 
@@ -81,7 +82,7 @@ export default function Game({ rival, socket }: IGameProps) {
         canvas.width * PLAYER_WIDTH_SCALE,
         canvas.height * PLAYER_HEIGTH_SCALE,
         {
-                  X: PLAYER_MARGINX,
+                  X: (canvas.width * PLAYER_WIDTH_SCALE) / 2,
                   Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
                 },
         canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
@@ -93,7 +94,7 @@ export default function Game({ rival, socket }: IGameProps) {
         canvas.width * PLAYER_WIDTH_SCALE,
         canvas.height * PLAYER_HEIGTH_SCALE,
         {
-          X: canvas.width - PLAYER_MARGINX - player.width,
+          X: canvas.width - ((canvas.width * PLAYER_WIDTH_SCALE) * 1.5),
           Y: canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
         },
         canvas.height / 2 - (canvas.height * PLAYER_HEIGTH_SCALE) / 2,
@@ -128,6 +129,8 @@ export default function Game({ rival, socket }: IGameProps) {
         Y: SERVER_CANVAS_Y / canvas.height,
       }
     }
+
+    screenScale = calculateScale();
 
     const onResize = (event: Event) => {
       const oldHeight = canvas.height;
@@ -171,7 +174,7 @@ export default function Game({ rival, socket }: IGameProps) {
     const updatePlayer = async () => {
       //Todo: fix
       const pos : Vector2d = {
-        X: 0,
+        X: player.position.X * screenScale.X,
         Y: player.position.Y * 100 / canvas.height,
       }
       socket.emit(Events.update, pos);
@@ -179,9 +182,36 @@ export default function Game({ rival, socket }: IGameProps) {
 
     socket.on(Events.game, (data : any) => {
         //Todo: fix
-        const res = calculateScreen(data);
+        //console.log(data);
+
+        const rivalPos = data.rival;
+        const  res = calculateScreen(rivalPos);
         rival.position.Y = res.Y;
+
+        const ballPos = data.ballPos;
+        ball.position = calculateBall(ballPos);
+        onBallMove(ball.position);
     });
+
+    socket.on(Events.score, (data : any) => {
+      console.log(data);
+      setScore1(data[0]);
+      setScore2(data[1]);
+    });
+
+    socket.on(Events.sound, (data : any) => {
+      playSound(data);
+    })
+
+    let hitTime = Date.now();
+    const onBallMove = (ballPos : Vector2d) => {
+      if(hitTime < Date.now() &&
+          ballPos.X - ball.radius < player.position.X + player.width && ballPos.Y >= player.position.Y && ballPos.Y <= player.position.Y + player.height) {
+        console.log("Hit");
+        hitTime = Date.now() + 1000;
+        socket.emit(Events.hit);
+      }
+    }
 
     const gameLoop = async () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -190,12 +220,12 @@ export default function Game({ rival, socket }: IGameProps) {
       drawPlayer(player);
       drawRival();
 
-      if(!gameState) {
-        drawText();
-        return;
-      }
+      //if(!gameState) {
+        //drawText();
+        //return;
+      //}
 
-      moveBall();
+      //moveBall();
       player.move();
       movePlayer(player);
 
