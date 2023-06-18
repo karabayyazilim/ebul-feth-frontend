@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import axios from "@/lib/axios";
 import toast from "react-hot-toast";
 
-export default function AddFriendModal() {
+export default function AddFriendModal({getFriends}: any) {
 
 	const [activeTab, setActiveTab] = useState('non-friends');
 	const [nonFriends, setNonFriends] = useState([]);
@@ -13,6 +13,7 @@ export default function AddFriendModal() {
 			friend: friendId
 		}).then(() => {
 			toast.success("Friend request sent!");
+			getFriends();
 			getNonFriends();
 		}).catch(() => {
 			toast.error("An error occurred!");
@@ -22,6 +23,7 @@ export default function AddFriendModal() {
 	const handleAcceptFriend = (friendId: number) => {
 		axios.put('/friend/accept/' + friendId).then(() => {
 			toast.success("Friend request accepted!");
+			getFriends();
 			getFriendRequests();
 		}).catch(() => {
 			toast.error("An error occurred!");
@@ -31,6 +33,7 @@ export default function AddFriendModal() {
 	const handleRejectFriend = (friendId: number) => {
 		axios.put('/friend/reject/' + friendId).then(() => {
 			toast.success("Friend request rejected!");
+			getFriends();
 			getFriendRequests();
 		}).catch(() => {
 			toast.error("An error occurred!");
@@ -62,11 +65,11 @@ export default function AddFriendModal() {
 					<label htmlFor="openAddFriendModal"
 						   className="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
 					<div className="flex justify-center mb-5">
-						<div className="tabs tabs-boxed mt-3 w-60 justify-center">
+						<div className="tabs tabs-boxed mt-3 w-80 justify-center">
 							<a className={activeTab === 'non-friends' ? "tab tab-active" : "tab"}
 							   onClick={() => setActiveTab('non-friends')}>Friends</a>
 							<a className={activeTab === 'requests' ? "tab tab-active" : "tab"}
-							   onClick={() => setActiveTab('requests')}>Friend Requests</a>
+							   onClick={() => setActiveTab('requests')}>Friend Requests ({friendRequests?.length}) </a>
 						</div>
 					</div>
 					<div className="bg-neutral rounded-2xl p-10">
