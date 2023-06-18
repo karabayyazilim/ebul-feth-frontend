@@ -211,8 +211,8 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
     socket.on(Events.finish, (data : any) => {
       console.log("finish");
       clearInterval(playerTimer);
-      if(data[0] == data[1])
-        gameOver({state: true, score: data[0], message: "Rakibin korktu!"});
+      if(data[1] < 0)
+        gameOver({state: true, score: data[0], message: "Rakip Oyundan Ayrıldı"});
       else if(data[0] > data[1]) {
         gameOver({state: true, score: data[0], message: "You Win!"});
         playSound(Song.Win);

@@ -19,23 +19,23 @@ export default function Header() {
           </h4>
         </div>
 
-        <div className="align-middle ">
-          <ul className="menu menu-horizontal">
-            <li className="text-center">
-              <Link href={"/"} className="btn btn-ghost">
+        <div className="align-middle flex items-center">
+          <ul className="menu menu-horizontal flex items-center">
+            <div className="text-center">
+              <Link href={"/"} className="btn btn-ghost items-center justify-center">
                 Home
               </Link>
-            </li>
-            <li>
+            </div>
+            <div>
               <Link href={"/chat"} className="btn btn-ghost ">
                 Chat
               </Link>
-            </li>
-            <li>
+            </div>
+            <div>
               <Link href={"/game/game"} className="btn btn-ghost">
                 Play
               </Link>
-            </li>
+            </div>
           </ul>
 
           <div className="dropdown dropdown-end z-40 ">
