@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import axios from "@/lib/axios";
 import toast from "react-hot-toast";
 
-export default function CreateChannelModal() {
+export default function CreateChannelModal({getChannels}: any) {
 
 	const [channelName, setChannelName] = useState('');
 
@@ -10,8 +10,9 @@ export default function CreateChannelModal() {
 		axios.post('/channel', {
 			name: channelName
 		}).then(() => {
-			toast.success("Channel created!");
+			getChannels();
 			setChannelName('');
+			toast.success("Channel created!");
 		}).catch((err) => {
 			toast.error("An error occurred!");
 		});

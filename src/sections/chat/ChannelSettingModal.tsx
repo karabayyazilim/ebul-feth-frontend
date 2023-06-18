@@ -121,6 +121,13 @@ export default function ChannelSettingModal({friends, channelId, profile}: any) 
 		getMe();
 	}, [friends, channelId]);
 
+	useEffect(() => {
+		if (channelCategory !== 'protected') {
+			setChannelPassword('');
+		}
+	}, [channelCategory]);
+
+
 	return (
 		<>
 			<input type="checkbox" id="openModal" className="modal-toggle"/>

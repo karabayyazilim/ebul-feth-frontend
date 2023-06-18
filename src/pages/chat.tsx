@@ -7,6 +7,7 @@ import ChannelSettingModal from "@/sections/chat/ChannelSettingModal";
 import CreateChannelModal from "@/sections/chat/CreateChannelModal";
 import AddFriendModal from "@/sections/chat/AddFriendModal";
 import toast from "react-hot-toast";
+import {BiRefresh} from "react-icons/bi";
 
 Chat.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
@@ -129,6 +130,26 @@ export default function Chat() {
 		});
 	}
 
+	const getFriends = () => {
+		axios.get('/friend', {
+			params: {
+				status: 'accepted'
+			}
+		}).then((res) => {
+			setFriends(res.data);
+		}).catch((err) => {
+			console.log(err);
+		});
+	}
+
+	const getChannels = () => {
+		axios.get('/channel').then((res) => {
+			setChannels(res.data);
+		}).catch((err) => {
+			console.log(err);
+		});
+	}
+
 	const getChannel = (userId: number) => {
 		axios.get('/channel/member/' + selectedChannel, {
 			params: {
@@ -165,21 +186,8 @@ export default function Chat() {
 			socket.current.emit('connect-user', res.data.id);
 		})
 
-		axios.get('/friend', {
-			params: {
-				status: 'accepted'
-			}
-		}).then((res) => {
-			setFriends(res.data);
-		}).catch((err) => {
-			console.log(err);
-		});
-
-		axios.get('/channel').then((res) => {
-			setChannels(res.data);
-		}).catch((err) => {
-			console.log(err);
-		});
+		getFriends();
+		getChannels();
 
 		return () => {
 			socket.current.disconnect();
@@ -219,6 +227,14 @@ export default function Chat() {
 						   onClick={() => setActiveTab('friends')}>Friends</a>
 						<a className={activeTab === 'channels' ? "tab tab-active" : "tab"}
 						   onClick={() => setActiveTab('channels')}>Channels</a>
+					</div>
+					<div className="w-full mt-2 p-4">
+						<button className="btn btn-primary w-full" onClick={() => {
+							getFriends()
+							getChannels()
+						}}>
+							<BiRefresh className="w-6 h-6" />
+						</button>
 					</div>
 					<div className="md:w-80 w-full h-screen bg-neutral text-base-content overflow-y-auto">
 						<ul className="flex flex-row p-4 menu rounded-2xl">
@@ -370,8 +386,8 @@ export default function Chat() {
 
 			{selectedChannel !== 0 &&
 				<ChannelSettingModal channelId={selectedChannel} friends={friends} profile={profile}/>}
-			<CreateChannelModal/>
-			<AddFriendModal/>
+			<CreateChannelModal getChannels={getChannels}/>
+			<AddFriendModal getFriends={getFriends}/>
 		</>
 	);
 }
