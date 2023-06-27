@@ -5,7 +5,7 @@ import FinishGame from "@/sections/game/finish-game";
 import Game from "@/sections/game/game";
 import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
-
+import {useRouter} from "next/router";
 
 export enum Events {
   connect = "connect",
@@ -33,6 +33,9 @@ export default function GamePage() {
 
   const [message, setMessage] = useState("");
 
+
+  const router = useRouter();
+
   let socket: any = useRef<any>(null);
 
   const finishGame = (val : any) => {
@@ -43,6 +46,7 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!user) return;
+    console.log("2");
 
     socket.current = gameSocket();
 
@@ -53,7 +57,9 @@ export default function GamePage() {
       console.log("connect");
     });
 
-    socket.current.emit(Events.match, { id: user!.id });
+
+   const code = router.query.invite;
+   socket.current.emit(Events.match, { id: user!.id , invite: code});
 
     socket.current.on(Events.start, (rival: any) => {
       setPending(false);
@@ -80,7 +86,7 @@ export default function GamePage() {
   }, []);
 
   if (pending) {
-    return <Matching />;
+    return <Matching invite={router.query.invite}/>;
   }
 
   if (gameOver) {

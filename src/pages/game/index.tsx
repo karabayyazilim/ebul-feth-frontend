@@ -4,7 +4,7 @@ import { gameSocket } from "@/api/socket/game";
 import { useAuthContext } from "@/auth/AuthContext";
 import {RxExit} from "react-icons/rx";
 import Link from "next/link";
-
+import { useRouter } from 'next/router';
 
 
 interface Vector2d {
@@ -50,6 +50,7 @@ export default function Game({ rival, socket }: IGameProps) {
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
   const [timeInfo, setTimeInfo] = useState("");
+
 
 
   //socket  = gameSocket();

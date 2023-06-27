@@ -146,14 +146,17 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
 
       player.height = canvas.height * PLAYER_HEIGTH_SCALE;
       player.width = canvas.width * PLAYER_WIDTH_SCALE;
-      player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025)
+      player.speed = PLAYER_MOVE_SPEED * (canvas.height * 0.0025);
+      player.position.X = (canvas.width * PLAYER_WIDTH_SCALE) / 2;
       player.position.Y = scale * canvas.height / 100;
       player.target = player.position.Y;
 
 
       rival.height = canvas.height * PLAYER_HEIGTH_SCALE;
       rival.width = canvas.width * PLAYER_WIDTH_SCALE;
+      rival.position.X = canvas.width - ((canvas.width * PLAYER_WIDTH_SCALE) * 1.5);
       rival.position.Y = scale * canvas.height / 100;
+
 
       ball.radius = canvas.width * 0.01;
 
