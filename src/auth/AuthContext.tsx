@@ -1,4 +1,4 @@
-import { loginAPI, myAccountAPI } from "@/api/web/auth";
+import { get2FAQrCodeAPI, loginAPI, myAccountAPI } from "@/api/web/auth";
 import { setSession } from "@/utils/jwt";
 import {
   ReactNode,
@@ -10,7 +10,8 @@ import {
 } from "react";
 
 interface IAuthContext {
-  login: (code: string) => Promise<any>;
+  get2FAQrCode: () => Promise<string>;
+  login: (code: string, twoFactorAuthCode: string) => Promise<any>;
   logout: () => void;
   user: IUser | null;
 
@@ -19,7 +20,8 @@ interface IAuthContext {
 }
 
 const AuthContext = createContext<IAuthContext>({
-  async login(code: string) {},
+  get2FAQrCode: async () => "",
+  async login(code: string, twoFactorAuthCode: string) {},
   logout() {},
   user: null,
   isInitializing: true,
@@ -33,16 +35,26 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = async (code: string) => {
+  const get2FAQrCode = async () => {
     try {
-      const { token, user } = await loginAPI(code);
+      const qr = await get2FAQrCodeAPI();
+      return qr;
+    } catch (error) {
+      console.log(error);
+    }
+    return "";
+  };
+
+  const login = async (code: string, twoFactorAuthCode: string) => {
+    try {
+      const { token, user } = await loginAPI({ code, twoFactorAuthCode });
 
       setSession(token);
       authenticated(user);
     } catch (error) {
-      console.log(error);
       reset();
       setSession(null);
+      return Promise.reject(error);
     }
   };
 
@@ -91,6 +103,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         login,
         logout,
+        get2FAQrCode,
         user,
         isAuthenticated,
         isInitializing,
