@@ -8,6 +8,7 @@ interface Profile {
 }
 
 export default function Header() {
+
   const { user, logout } = useAuthContext();
 
   return (
@@ -61,7 +62,9 @@ export default function Header() {
                 </Link>
               </li>
               <li>
-                <div onClick={logout}>Logout</div>
+                <a href="#" className="justify-between" onClick={logout}>
+                  Logout
+                </a>
               </li>
             </ul>
           </div>

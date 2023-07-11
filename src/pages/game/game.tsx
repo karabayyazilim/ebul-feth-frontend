@@ -20,6 +20,8 @@ export enum Events {
   hit = "server:hit",
 }
 
+GamePage.getLayout = (page: any) => <DashboardLayout isHidden={true}>{page}</DashboardLayout>
+
 export default function GamePage() {
   const { user } = useAuthContext();
 
