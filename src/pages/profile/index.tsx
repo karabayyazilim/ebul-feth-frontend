@@ -3,17 +3,17 @@ import axios from "@/lib/axios";
 import toast from "react-hot-toast";
 import DashboardLayout from "@/layouts/DashboardLayout";
 
-Profile.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>;
+Index.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>;
 
-interface Profile {
+interface Index {
   login: string;
   full_name: string;
   email: string;
   avatar: string;
 }
 
-export default function Profile() {
-  const [profile, setProfile] = useState<Profile>({
+export default function Index() {
+  const [profile, setProfile] = useState<Index>({
     login: "",
     avatar: "",
     email: "",
