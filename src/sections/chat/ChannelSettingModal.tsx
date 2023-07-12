@@ -203,7 +203,7 @@ export default function ChannelSettingModal({friends, channelId, profile}: any) 
 															</label>
 															<ul tabIndex={0}
 																className="dropdown-content menu p-2 shadow bg-base-100 rounded-box z-40 w-52">
-																{me?.is_owner && (
+																{(me?.is_owner && !channelMember.is_admin) && (
 																	<li><a
 																		onClick={() => handleAssignAdmin(channelMember.user.id)}>Assign
 																		Admin</a></li>

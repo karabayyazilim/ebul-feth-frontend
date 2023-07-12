@@ -16,7 +16,7 @@ export default function Header() {
       <div className="navbar bg-base-300 flex justify-around">
         <div>
           <h4 className="text-white text-4xl font-bold italic animate-bounce">
-            Ebu'l Feth
+           🛡️ Ebu'l ⚓️ Feth 🗡️
           </h4>
         </div>
 

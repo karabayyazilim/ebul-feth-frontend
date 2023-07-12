@@ -1,6 +1,6 @@
 import DashboardLayout from "@/layouts/DashboardLayout";
 import React, {useEffect, useRef, useState} from "react";
-import {AdjustmentsHorizontalIcon} from "@heroicons/react/20/solid";
+import {AdjustmentsHorizontalIcon, LockClosedIcon} from "@heroicons/react/20/solid";
 import {io} from "socket.io-client";
 import axios from "@/lib/axios";
 import ChannelSettingModal from "@/sections/chat/ChannelSettingModal";
@@ -38,6 +38,7 @@ export default function Chat() {
 	const [channel, setChannel] = useState<any>({});
 	const [selectedChannel, setSelectedChannel] = useState<number>(0);
 	const chatRef = useRef<HTMLDivElement>(null);
+	const [channelPassword, setChannelPassword] = useState<string>('');
 
 	const socketUrl: string = process.env.NEXT_PUBLIC_SOCKET_URL || '';
 
@@ -104,13 +105,41 @@ export default function Chat() {
 		setChannelsMessages((prevMessages) => [...prevMessages, message]);
 	}
 
-	const handleJoinChannel = (channelId: number) => {
+	const handleJoinChannel = (channelId: number, channelType: string) => {
 		if (selectedChannel) {
 			socket.current.emit('leave-channel', selectedChannel);
 		}
+		setSelectedChannel(channelId);
+
+		if (channelType === 'protected' && selectedChannel !== channelId) {
+			window.chat_password_modal.showModal();
+			return;
+		}
+
 		socket.current.emit('join-channel', channelId);
 		setChannelsMessages([]);
-		setSelectedChannel(channelId);
+	}
+
+	const handleJoinProtectedChannel = async () => {
+		const check = await axios.post('channel/check-password', {
+			id: selectedChannel,
+			password: channelPassword
+		})
+
+		if (!check.data) {
+			toast.error("Wrong password!");
+			return;
+		}
+
+		socket.current.emit('join-channel', {
+			channelId: selectedChannel,
+			channelPassword
+		})
+
+		setChannelPassword('');
+
+		window.chat_password_modal.close();
+		setChannelsMessages([]);
 	}
 
 	const handleDeleteChannel = (channelId: number) => {
@@ -233,7 +262,7 @@ export default function Chat() {
 							getFriends()
 							getChannels()
 						}}>
-							<BiRefresh className="w-6 h-6" />
+							<BiRefresh className="w-6 h-6"/>
 						</button>
 					</div>
 					<div className="md:w-80 w-full h-screen bg-neutral text-base-content overflow-y-auto">
@@ -273,11 +302,15 @@ export default function Chat() {
 							{activeTab === 'channels' && channels.map((channel, index) => (
 								<li key={index}
 									className={selectedChannel === channel.channel.id ? 'w-full cursor-pointer bg-primary text-white rounded-lg' : 'w-full cursor-pointer rounded-lg'}
-									onClick={() => handleJoinChannel(channel.channel.id)}>
+									onClick={() => handleJoinChannel(channel.channel.id, channel.channel.type)}>
 									<div className="flex items-center justify-between">
-										<div>
+										<div className="flex gap-x-4">
 											<span>
 												{channel.channel.name}
+											</span>
+											<span>
+												{channel.channel.type === 'protected' &&
+													<LockClosedIcon className="w-4 h-4"/>}
 											</span>
 										</div>
 										<div className="dropdown dropdown-end">
@@ -388,6 +421,20 @@ export default function Chat() {
 				<ChannelSettingModal channelId={selectedChannel} friends={friends} profile={profile}/>}
 			<CreateChannelModal getChannels={getChannels}/>
 			<AddFriendModal getFriends={getFriends}/>
+
+			<dialog id="chat_password_modal" className="modal">
+				<form method="dialog" className="modal-box">
+					<h3 className="font-bold text-lg">Channel Password</h3>
+					<div className="form-control mt-5">
+						<input type="password" placeholder="Password" value={channelPassword} onChange={e => setChannelPassword(e.target.value)}
+							   className="input input-bordered"/>
+					</div>
+
+					<div className="modal-action">
+						<button className="btn" type="button" onClick={handleJoinProtectedChannel}>Submit</button>
+					</div>
+				</form>
+			</dialog>
 		</>
 	);
 }
