@@ -1,13 +1,9 @@
 import axios from "@/lib/axios";
 
-type LoginApiData = {
-  code: string;
-  twoFactorAuthCode: string;
-};
 export async function loginAPI(
-  data: LoginApiData
-): Promise<{ user: IUser; token: string }> {
-  return axios.post("/auth/callback", data).then((resp) => resp.data);
+  code: string
+): Promise<{ user: IUser; token?: string }> {
+  return axios.post("/auth/callback", { code }).then((resp) => resp.data);
 }
 
 export async function myAccountAPI(): Promise<IUser> {
@@ -16,4 +12,8 @@ export async function myAccountAPI(): Promise<IUser> {
 
 export async function get2FAQrCodeAPI(): Promise<string> {
   return axios.get("/auth/2fa").then((resp) => resp.data);
+}
+
+export async function verify2FAAPI(data: { code: string; userId: number }) {
+  return axios.post("/auth/2fa/verify", data).then((resp) => resp.data);
 }

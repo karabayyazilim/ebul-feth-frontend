@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { ReactNode, useEffect, useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useAuthContext } from "@/auth/AuthContext";
 import { updateProfileAPI } from "@/api/web/profile";
 
-Profile.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>;
+Profile.getLayout = (page: ReactNode) => (
+  <DashboardLayout>{page}</DashboardLayout>
+);
 
 export default function Profile() {
   const { get2FAQrCode, user } = useAuthContext();
@@ -12,7 +14,7 @@ export default function Profile() {
   const [login, setLogin] = useState(user?.login || "");
   const [file, setFile] = useState<File>();
   const [qrCode, setQrCode] = useState<string>();
-  const [enable2Fa, setEnable2FA] = useState(false);
+  const [enable2Fa, setEnable2FA] = useState(user?.twoFA);
 
   const onFileChange = (e: any) => {
     setFile(e.target.files[0]);

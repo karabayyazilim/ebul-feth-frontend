@@ -1,9 +1,9 @@
 import axios from "@/lib/axios";
 
-const USER_ENDPOINT = "/ser";
+const USER_ENDPOINT = "/user";
 
 export async function updateProfileAPI(data: FormData): Promise<void> {
   return axios
-    .post(`${USER_ENDPOINT}/update-profile`, data)
+    .put(`${USER_ENDPOINT}/update-profile`, data)
     .then((resp) => resp.data);
 }

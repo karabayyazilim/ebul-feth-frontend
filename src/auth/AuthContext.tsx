@@ -1,4 +1,9 @@
-import { get2FAQrCodeAPI, loginAPI, myAccountAPI } from "@/api/web/auth";
+import {
+  get2FAQrCodeAPI,
+  loginAPI,
+  myAccountAPI,
+  verify2FAAPI,
+} from "@/api/web/auth";
 import { setSession } from "@/utils/jwt";
 import {
   ReactNode,
@@ -11,9 +16,10 @@ import {
 
 interface IAuthContext {
   get2FAQrCode: () => Promise<string>;
-  login: (code: string, twoFactorAuthCode: string) => Promise<any>;
+  login: (code: string) => Promise<any>;
   logout: () => void;
   user: IUser | null;
+  verify2FA: (code: string, userId: number) => Promise<void>;
 
   isInitializing: boolean;
   isAuthenticated: boolean;
@@ -21,7 +27,8 @@ interface IAuthContext {
 
 const AuthContext = createContext<IAuthContext>({
   get2FAQrCode: async () => "",
-  async login(code: string, twoFactorAuthCode: string) {},
+  async verify2FA(code: string, userId: number) {},
+  async login(code: string) {},
   logout() {},
   user: null,
   isInitializing: true,
@@ -45,17 +52,29 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return "";
   };
 
-  const login = async (code: string, twoFactorAuthCode: string) => {
+  const login = async (code: string) => {
     try {
-      const { token, user } = await loginAPI({ code, twoFactorAuthCode });
+      const data = await loginAPI(code);
 
-      setSession(token);
-      authenticated(user);
+      if (data.token) {
+        setSession(data.token);
+      }
+      authenticated(data.user);
+      return data;
     } catch (error) {
       reset();
       setSession(null);
       return Promise.reject(error);
     }
+  };
+
+  const verify2FA = async (code: string, userId: number) => {
+    try {
+      const data = await verify2FAAPI({ code, userId });
+      console.log(data);
+      setSession(data.token);
+      authenticated(data.user);
+    } catch (error) {}
   };
 
   const logout = () => {
@@ -104,6 +123,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         get2FAQrCode,
+        verify2FA,
         user,
         isAuthenticated,
         isInitializing,

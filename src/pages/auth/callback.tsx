@@ -6,17 +6,11 @@ import { useAuthContext } from "@/auth/AuthContext";
 export default function Callback() {
   const { query } = useRouter();
 
-  const { login, get2FAQrCode } = useAuthContext();
+  const { login, verify2FA, user } = useAuthContext();
 
-  const [qrCode, setQrCode] = useState("");
+  const [enabled2FA, setEnabled2FA] = useState(false);
 
   const [twoFactorAuthCode, setTwoFactorAuthCode] = useState("");
-
-  useEffect(() => {
-    if (typeof query.code === "string") {
-      get2FAQrCode().then((resp) => setQrCode(resp));
-    }
-  }, [query.code]);
 
   const handleClickConfirm = async () => {
     if (twoFactorAuthCode.length !== 6) {
@@ -24,7 +18,7 @@ export default function Callback() {
     } else {
       try {
         if (typeof query.code === "string") {
-          await login(query.code, twoFactorAuthCode);
+          const data = await verify2FA(twoFactorAuthCode, user?.id!);
           window.location.href = "/";
         }
       } catch (error) {
@@ -43,29 +37,41 @@ export default function Callback() {
     }
   };
 
+  useEffect(() => {
+    if (!query.code) return;
+
+    login(query.code as string).then((data) => {
+      console.log(data);
+      if (data.token) {
+        window.location.href = "/";
+      } else {
+        setEnabled2FA(true);
+      }
+    });
+  }, [query.code]);
+
   return (
     <div className="hero min-h-screen">
-      <div className="flex flex-col items-center gap-12">
-        <div className="inline-flex item-center flex-col">
-          <h3 className="text-3xl mb-2 ">Google Authenticator Qr Code</h3>
-          <img src={qrCode} />
+      {enabled2FA ? (
+        <div className="flex flex-col items-center gap-12">
+          <div className="flex gap-2">
+            <input
+              type="number"
+              onChange={(e) => setTwoFactorAuthCode(e.target.value)}
+              placeholder="Google Authenticator Code"
+              className="input input-bordered input-success w-full "
+            />
+            <button
+              onClick={handleClickConfirm}
+              className="btn btn-accent disabled"
+            >
+              Confirm
+            </button>
+          </div>
         </div>
-
-        <div className="flex gap-2">
-          <input
-            type="number"
-            onChange={(e) => setTwoFactorAuthCode(e.target.value)}
-            placeholder="Google Authenticator Code"
-            className="input input-bordered input-success w-full "
-          />
-          <button
-            onClick={handleClickConfirm}
-            className="btn btn-accent disabled"
-          >
-            Confirm
-          </button>
-        </div>
-      </div>
+      ) : (
+        <h3>Redirecting ...</h3>
+      )}
     </div>
   );
 }
