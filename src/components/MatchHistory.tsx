@@ -57,12 +57,8 @@ export default function MatchHistory(props: any) : any {
 					<thead>
 					<tr className="text-center">
 
-						<th>Username</th>
-						<th>Score</th>
-						<th>Enemy</th>
-					</tr>
-					</thead>
-					<tbody>
+export default function MatchHistory(props: any): any {
+  const { user } = useAuthContext();
 
 					{matchHistory && matchHistory.map((match: any) => (
 						<tr key={match.id}>
