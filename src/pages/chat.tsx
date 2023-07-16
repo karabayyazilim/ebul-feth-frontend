@@ -8,6 +8,7 @@ import CreateChannelModal from "@/sections/chat/CreateChannelModal";
 import AddFriendModal from "@/sections/chat/AddFriendModal";
 import toast from "react-hot-toast";
 import {BiRefresh} from "react-icons/bi";
+import PublicChannels from "@/sections/chat/PublicChannels";
 
 Chat.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
@@ -102,6 +103,7 @@ export default function Chat() {
 
 	// Channels Messages
 	const handleChannelMessages = (message: IChannelMessage) => {
+		console.log("message", message);
 		setChannelsMessages((prevMessages) => [...prevMessages, message]);
 	}
 
@@ -206,6 +208,10 @@ export default function Chat() {
 
 		socket.current.on("channel-message", handleChannelMessages);
 
+		socket.onmessage = (e: any) => {
+			console.log(e);
+		}
+
 		socket.current.on("disconnect", () => {
 			console.log("Disconnected from socket server!");
 		});
@@ -248,6 +254,11 @@ export default function Chat() {
 						<div className="w-full">
 							<label htmlFor="openAddFriendModal" className="btn btn-outline w-full">
 								Add Friend
+							</label>
+						</div>
+						<div className="w-full">
+							<label htmlFor="openPublicChannelsModal" className="btn btn-outline w-full">
+								Public Channels
 							</label>
 						</div>
 					</div>
@@ -421,6 +432,7 @@ export default function Chat() {
 				<ChannelSettingModal channelId={selectedChannel} friends={friends} profile={profile}/>}
 			<CreateChannelModal getChannels={getChannels}/>
 			<AddFriendModal getFriends={getFriends}/>
+			<PublicChannels getChannels={getChannels}/>
 
 			<dialog id="chat_password_modal" className="modal">
 				<form method="dialog" className="modal-box">
