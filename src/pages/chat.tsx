@@ -9,6 +9,7 @@ import AddFriendModal from "@/sections/chat/AddFriendModal";
 import toast from "react-hot-toast";
 import {BiRefresh} from "react-icons/bi";
 import PublicChannels from "@/sections/chat/PublicChannels";
+import {v4 as uuidv4} from 'uuid';
 
 Chat.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
@@ -75,6 +76,19 @@ export default function Chat() {
 			}
 			e.target.value = '';
 		}
+	}
+
+	const handleSendGameRequest = () => {
+		const message: IMessage = {
+			avatar: profile?.avatar,
+			name: profile?.full_name,
+			message: `<a class="underline text-red-400" href="/game/game?invite=${uuidv4()}">Play Game</a>`,
+			recieverId: selectedFriend.id
+		}
+
+		socket.current.emit('message', message);
+		setDirectMessages((prevMessages) => [...prevMessages, message]);
+
 	}
 
 
@@ -284,7 +298,7 @@ export default function Chat() {
 									onClick={() => handleSelectFriend(friend.friend)}>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-x-3">
-											<div className="avatar online">
+											<div className={friend.friend.is_online ? 'avatar online' : 'avatar offline'}>
 												<div className="w-12 rounded-full">
 													<img src={friend.friend.avatar}/>
 												</div>
@@ -352,7 +366,12 @@ export default function Chat() {
 				{activeTab === 'friends' ? (
 					<div className="card w-full bg-neutral shadow-xl h-[400px] md:h-full">
 						<div ref={chatRef} className="card-body overflow-y-auto">
-							<h2 className="card-title">Chat</h2>
+							<div className="w-full flex justify-between bg-primary p-3 rounded-3xl">
+								<h2 className="card-title text-white">Chat</h2>
+								{Object.keys(selectedFriend).length > 0 && (
+									<button className="btn btn-primary" onClick={handleSendGameRequest}>Send Game
+										Request</button>)}
+							</div>
 							{Object.keys(selectedFriend).length ? (
 								<div>
 									{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
@@ -367,7 +386,8 @@ export default function Chat() {
 											<div className="chat-header">
 												{direct.name}
 											</div>
-											<div className="bg-green-950 chat-bubble">{direct.message}</div>
+											<div className="bg-green-950 chat-bubble"
+												 dangerouslySetInnerHTML={{__html: direct.message}}/>
 										</div>
 									))}
 								</div>
@@ -438,7 +458,8 @@ export default function Chat() {
 				<form method="dialog" className="modal-box">
 					<h3 className="font-bold text-lg">Channel Password</h3>
 					<div className="form-control mt-5">
-						<input type="password" placeholder="Password" value={channelPassword} onChange={e => setChannelPassword(e.target.value)}
+						<input type="password" placeholder="Password" value={channelPassword}
+							   onChange={e => setChannelPassword(e.target.value)}
 							   className="input input-bordered"/>
 					</div>
 
