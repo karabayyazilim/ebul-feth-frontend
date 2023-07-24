@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 interface IFinishGame {
   score: number;
   message: string
@@ -12,6 +14,7 @@ export default function FinishGame({ score, message }: IFinishGame) {
         <h6 className="text-4xl">
           Your Score: <span className="font-bold">{score}</span>
         </h6>
+        <Link href={"/"}>Back To Home</Link>
       </div>
     </div>
   );
