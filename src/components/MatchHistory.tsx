@@ -26,7 +26,14 @@ export function matchInfo(user: string, matchHistory: any[]) {
     }
   }
 
-  return { Total: total, Wins: wins, Loses: loses, Ratio: wins / loses };
+  const ret = {
+    Total: total,
+    Wins: wins,
+    Loses: loses,
+    Ratio: loses ? wins / loses : wins,
+  }
+
+  return ret;
 }
 
 export default function MatchHistory(props: any): any {
