@@ -40,10 +40,12 @@ export default function Callback() {
   useEffect(() => {
     if (!query.code) return;
 
-    login(query.code as string).then((data) => {
-      console.log(data);
+    login(query.code as string).then((data : any) => {
       if (data.token) {
-        window.location.href = "/";
+        if(data.user.is_first_login)
+          window.location.href = "/profile";
+        else
+          window.location.href = "/";
       } else {
         setEnabled2FA(true);
       }
