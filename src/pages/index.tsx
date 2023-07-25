@@ -7,7 +7,7 @@ Home.getLayout = (page: ReactNode) => <DashboardLayout>{page}</DashboardLayout>;
 
 export default function Home() {
   return (
-    <div className="flex gap-3 md:flex-wrap lg:flex-nowrap">
+    <div className="flex gap-3 flex-wrap lg:flex-nowrap">
       <LeaderBoard />
       <MatchHistory />
     </div>

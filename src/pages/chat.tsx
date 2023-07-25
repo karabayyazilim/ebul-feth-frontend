@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import {BiRefresh} from "react-icons/bi";
 import PublicChannels from "@/sections/chat/PublicChannels";
 import {v4 as uuidv4} from 'uuid';
+import Link from "next/link";
 
 Chat.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
@@ -310,7 +311,9 @@ export default function Chat() {
 											</div>
 											<div>
 											<span>
-												{friend.friend.full_name}
+												{friend.friend.full_name} {friend.friend.is_gamer && (<p>
+													<span className="text-xs font-bold"> (In Game)</span>
+												</p>)}
 											</span>
 											</div>
 										</div>
@@ -322,6 +325,9 @@ export default function Chat() {
 												className="dropdown-content menu p-2 shadow bg-base-100 rounded-box z-40 w-52">
 												<li>
 													<button onClick={() => handleBanFriend(friend.id)}>Banned</button>
+													<Link href={`/profile/${friend.friend.id}`}>
+														Profile
+													</Link>
 												</li>
 											</ul>
 										</div>
