@@ -17,6 +17,7 @@ interface IMessage {
 	avatar: string;
 	name: string;
 	message: string;
+	ownerId: number;
 	recieverId: number;
 }
 
@@ -32,6 +33,7 @@ export default function Chat() {
 
 	const [activeTab, setActiveTab] = useState('friends');
 	const [directMessages, setDirectMessages] = useState<IMessage[]>([]);
+	const [groupDirectMessages, setGroupDirectMessages] = useState<any[]>([]);
 	const [channelsMessages, setChannelsMessages] = useState<IChannelMessage[]>([]);
 	const [profile, setProfile] = useState<any>({});
 	const [friends, setFriends] = useState<any[]>([]);
@@ -53,10 +55,12 @@ export default function Chat() {
 					avatar: profile?.avatar,
 					name: profile?.full_name,
 					message: e.target.value,
+					ownerId: profile?.id,
 					recieverId: selectedFriend.id
 				}
 
 				socket.current.emit('message', message);
+
 				setDirectMessages((prevMessages) => [...prevMessages, message]);
 
 			} else {
@@ -83,6 +87,7 @@ export default function Chat() {
 			avatar: profile?.avatar,
 			name: profile?.full_name,
 			message: `<a class="underline text-red-400" href="/game/game?invite=${uuidv4()}">Play Game</a>`,
+			ownerId: profile?.id,
 			recieverId: selectedFriend.id
 		}
 
@@ -95,7 +100,7 @@ export default function Chat() {
 	// Direct Messages
 	const handleSelectFriend = (friend: any) => {
 		setSelectedFriend(friend);
-		setDirectMessages([]);
+		//setDirectMessages([]);
 	}
 
 	const handleMessages = (message: IMessage) => {
@@ -253,7 +258,6 @@ export default function Chat() {
 		}
 	}, [profile, selectedChannel]);
 
-
 	return (
 		<>
 			<div className="flex md:flex-row flex-col gap-5 md:h-[calc(100vh-120px)] h-screen">
@@ -298,7 +302,8 @@ export default function Chat() {
 									onClick={() => handleSelectFriend(friend.friend)}>
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-x-3">
-											<div className={friend.friend.is_online ? 'avatar online' : 'avatar offline'}>
+											<div
+												className={friend.friend.is_online ? 'avatar online' : 'avatar offline'}>
 												<div className="w-12 rounded-full">
 													<img src={friend.friend.avatar}/>
 												</div>
@@ -375,19 +380,38 @@ export default function Chat() {
 							{Object.keys(selectedFriend).length ? (
 								<div>
 									{directMessages.map((direct: IMessage, index: number): React.ReactElement => (
-										<div
-											className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}
-											key={index}>
-											<div className="chat-image avatar">
-												<div className="w-10 rounded-full">
-													<img src={direct.avatar}/>
+										<div key={index}>
+											{direct.ownerId === selectedFriend.id && (
+												<div
+													className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}>
+													<div className="chat-image avatar">
+														<div className="w-10 rounded-full">
+															<img src={direct.avatar}/>
+														</div>
+													</div>
+													<div className="chat-header">
+														{direct.name}
+													</div>
+													<div className="bg-green-950 chat-bubble"
+														 dangerouslySetInnerHTML={{__html: direct.message}}/>
 												</div>
-											</div>
-											<div className="chat-header">
-												{direct.name}
-											</div>
-											<div className="bg-green-950 chat-bubble"
-												 dangerouslySetInnerHTML={{__html: direct.message}}/>
+											)}
+
+											{direct.recieverId === selectedFriend.id && (
+												<div
+													className={direct.recieverId !== profile.id ? "chat chat-end" : "chat chat-start"}>
+													<div className="chat-image avatar">
+														<div className="w-10 rounded-full">
+															<img src={direct.avatar}/>
+														</div>
+													</div>
+													<div className="chat-header">
+														{direct.name}
+													</div>
+													<div className="bg-green-950 chat-bubble"
+														 dangerouslySetInnerHTML={{__html: direct.message}}/>
+												</div>
+											)}
 										</div>
 									))}
 								</div>
