@@ -34,7 +34,6 @@ const audioSources: string[] = [
 ];
 
 const PLAYER_MARGINY = 5;
-const PLAYER_MARGINX = 10;
 const PLAYER_MOVE_SPEED = 5;
 const PLAYER_WIDTH_SCALE = 0.01;
 const PLAYER_HEIGTH_SCALE = 0.25;
@@ -46,6 +45,7 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
   const { user } = useAuthContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scoreboardRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [score1, setScore1] = useState(0);
   const [score2, setScore2] = useState(0);
@@ -56,6 +56,12 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
   let playerTimer : NodeJS.Timer;
 
   let screenScale : Vector2d;
+
+  const setColor = () => {
+    if (containerRef.current) {
+      containerRef.current.style.backgroundColor = containerRef.current.style.backgroundColor === 'blue' ? 'pink' : 'blue';
+    }
+  }
 
   useEffect(() => {
     let canvas = canvasRef.current as HTMLCanvasElement;
@@ -107,12 +113,12 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
         "blue"
     );
 
+
     let sing: any = [];
     for(let i = 0; i < 6; i++)
       sing[i] = new Audio(audioSources[i]);
 
     const calculateScreen = (screenPos : Vector2d) : Vector2d => {
-      //Todo: fix
       const playerScale : Vector2d = {
         X: 0,
         Y: canvas.height * screenPos.Y / 100,
@@ -180,7 +186,6 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
     };
 
     const updatePlayer = async () => {
-      //Todo: fix
       const pos : Vector2d = {
         X: player.position.X * screenScale.X,
         Y: player.position.Y * 100 / canvas.height,
@@ -189,9 +194,6 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
     }
 
     socket.on(Events.game, (data : any) => {
-        //Todo: fix
-        //console.log(data);
-
         const rivalPos = data.rival;
         const  res = calculateScreen(rivalPos);
         rival.position.Y = res.Y;
@@ -226,12 +228,8 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
       }
     })
 
-    let hitTime = Date.now();
     const onBallMove = (ballPos : Vector2d) => {
-      if(hitTime < Date.now() &&
-          ballPos.X - ball.radius < player.position.X + player.width && ballPos.Y >= player.position.Y && ballPos.Y <= player.position.Y + player.height) {
-        console.log("Hit");
-        hitTime = Date.now() + 1000;
+      if(ballPos.X - ball.radius < player.position.X + player.width && ballPos.Y >= player.position.Y && ballPos.Y <= player.position.Y + player.height) {
         socket.emit(Events.hit);
         playSound(Song.Hit);
       }
@@ -342,8 +340,6 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
       }, 1000);
     }
 
-
-    //Todo: Süreyi hesaplayacak kütüphane kullan
     timer = setInterval(() => {
       const time = Date.now() / 1000;
       const min = Math.floor((time - gameTime) / 60);
@@ -370,7 +366,7 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
   }, []);
 
   return (
-      <div className={styles.container}>
+      <div className={styles.container} ref={containerRef}>
         <div className={styles.scoreboard} ref={scoreboardRef}>
           <div className={styles.playerScore}>
             <img src={user?.avatar || ""} className={styles.avatar} />
@@ -395,6 +391,9 @@ export default function Game({ rival, socket, gameOver }: IGameProps) {
           Exit
           <Link href={"/"}><RxExit/></Link>
         </div>
+        <button className={styles.footer2} onClick={setColor}>
+          Color
+        </button>
       </div>
   );
 }
