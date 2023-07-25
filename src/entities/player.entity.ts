@@ -1,4 +1,4 @@
-import Vector2d from "@/pages/game/entities/vector2d.entity";
+import {Vector2d} from "@/entities/vector2d.entity";
 
 export default class Player {
 

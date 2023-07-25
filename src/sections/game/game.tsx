@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./game.module.css";
 import {RxExit} from "react-icons/rx";
 import { useAuthContext } from "@/auth/AuthContext";
-import Player from "@/pages/game/entities/player.entity";
-import Ball from "@/pages/game/entities/ball.entity";
+import Player from "@/entities/player.entity";
+import {Ball} from "@/entities/ball.entity";
 import Link from "next/link";
 import {Events} from "@/pages/game/game";
-import Vector2d from "@/pages/game/entities/vector2d.entity";
+import {Vector2d} from "@/entities/vector2d.entity";
 
 
 interface IGameProps {
